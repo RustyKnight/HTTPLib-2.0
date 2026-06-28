@@ -5,26 +5,33 @@ internal enum RequestBuilder {
 
     /// Assembles a URLRequest ready for dispatch.
     ///
-    /// Header priority (research Decision 6):
-    ///   1. Caller-supplied headers (applied first)
-    ///   2. Library-managed Content-Type for body requests (overwrites conflicts — US3-AC-03)
-    ///   3. RequestConfigurator callback (applied last — FR-011)
+    /// Header priority (research Decision 6, Feature 002 data-model.md):
+    ///   1. defaultHeaders (applied first — lowest priority, FR-002, FR-004)
+    ///   2. Caller-supplied per-request headers (overwrites step 1 conflicts — US3-AC-01)
+    ///   3. Library-managed Content-Type for body requests (overwrites steps 1–2 — FR-005)
+    ///   4. RequestConfigurator callback (applied last — FR-011)
     static func buildRequest(
         url: URL,
         method: HTTPMethod,
         headers: [String: String]?,
         body: RequestBody?,
-        configurator: RequestConfigurator?
+        configurator: RequestConfigurator?,
+        defaultHeaders: [String: String]         // FR-002: engine-level default headers (lowest priority)
     ) throws -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
 
-        // Step 1 — caller headers applied first (research Decision 6)
+        // Step 1 — defaultHeaders applied first (lowest priority; no-op when empty, FR-004)
+        for (key, value) in defaultHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // Step 2 — caller per-request headers overwrite step 1 conflicts (research Decision 6)
         for (key, value) in headers ?? [:] {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        // Step 2 — library body encoding + Content-Type
+        // Step 3 — library body encoding + Content-Type
         // Library sets Content-Type AFTER caller headers, overwriting any conflict (FR-009/US3-AC-03)
         if let body {
             switch body {
@@ -49,7 +56,7 @@ internal enum RequestBuilder {
             }
         }
 
-        // Step 3 — configurator runs last (FR-011)
+        // Step 4 — configurator runs last (FR-011)
         configurator?(&request)
 
         return request

@@ -8,13 +8,17 @@ public struct HTTPEngine: Sendable {
 
     public let session: URLSession
     public let configurator: RequestConfigurator?
+    // FR-002, FR-004, FR-007: immutable default headers applied to every outbound request (lowest priority tier)
+    public let defaultHeaders: [String: String]
 
     public init(
         session: URLSession = .shared,
-        configurator: RequestConfigurator? = nil
+        configurator: RequestConfigurator? = nil,
+        defaultHeaders: [String: String]? = nil
     ) {
         self.session = session
         self.configurator = configurator
+        self.defaultHeaders = defaultHeaders ?? [:]
     }
 
     // MARK: - Shared dispatch helper
@@ -35,7 +39,8 @@ public struct HTTPEngine: Sendable {
             method: method,
             headers: headers,
             body: body,
-            configurator: self.configurator  // FR-011: configurator applied in RequestBuilder
+            configurator: self.configurator,  // FR-011: configurator applied in RequestBuilder
+            defaultHeaders: self.defaultHeaders  // FR-002: engine-level default headers (step 1)
         )
 
         let data: Data
@@ -121,13 +126,18 @@ public struct HTTPEngine: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.post.rawValue
 
-        // Step 1 — caller headers first (research Decision 6)
+        // Step 1 — default headers first (lowest priority; FR-002, FR-004)
+        for (key, value) in self.defaultHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // Step 2 — caller headers overwrite step 1 conflicts (research Decision 6)
         headers?.forEach { request.setValue($1, forHTTPHeaderField: $0) }
 
-        // Step 2 — library Content-Type overwrites any conflicting caller header (FR-009, US3-AC-03)
+        // Step 3 — library Content-Type overwrites any conflicting caller header (FR-009, US3-AC-03)
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
 
-        // Step 3 — configurator last (FR-011: routes through injected configurator)
+        // Step 4 — configurator last (FR-011: routes through injected configurator)
         self.configurator?(&request)  // FR-011: configurator applied in RequestBuilder
 
         request.httpBody = multipartBody

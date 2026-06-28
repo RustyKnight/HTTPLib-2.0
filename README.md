@@ -2,7 +2,7 @@
 
 A lightweight Swift HTTP library with async/await support for **GET**, **POST**, **PUT**, and **DELETE**.
 
-This is intended as a lightweight HTTP engine in places where you just need to do some basic interactions with a web services and can't be bothered to role your own implementation.
+This is intended as a lightweight HTTP engine for basic web service interactions when you want a reusable implementation without building one from scratch.
 
 # Experimental
 
@@ -11,6 +11,7 @@ This is an experiment with Github SpecKit and Github Copilot.
 # Highlights
 
 - Async API (`async throws`) built on `URLSession`
+- Engine-level default headers (applied to every request)
 - Per-request headers
 - Optional request configurator for low-level `URLRequest` customization
 - Optional custom `URLSession` injection (great for testing)
@@ -54,6 +55,29 @@ print(response.statusCode)
 if let body = response.body {
     print(String(decoding: body, as: UTF8.self))
 }
+```
+
+## Example: default headers + per-request override
+
+```swift
+import HTTPLib
+import Foundation
+
+let engine = HTTPEngine(
+    defaultHeaders: [
+        "Authorization": "Bearer <token>",
+        "Accept": "application/json"
+    ]
+)
+
+// Uses default headers
+let me = try await engine.get(URL(string: "https://api.example.com/me")!)
+
+// Per-request header overrides default "Accept"
+let users = try await engine.get(
+    URL(string: "https://api.example.com/users")!,
+    headers: ["Accept": "application/vnd.api+json"]
+)
 ```
 
 ## Example: JSON request body
