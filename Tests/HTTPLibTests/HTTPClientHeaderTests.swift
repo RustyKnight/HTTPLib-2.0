@@ -2,13 +2,13 @@ import Testing
 import Foundation
 @testable import HTTPLib
 
-@Suite("HTTPEngine Headers") struct HTTPEngineHeaderTests {
+@Suite("HTTPClient Headers") struct HTTPClientHeaderTests {
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPEngine, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPEngine(session: session), mock)
+        return (HTTPClient(session: session), mock)
     }
 
     // US3-AC-01: Caller-supplied headers appear in the outbound request

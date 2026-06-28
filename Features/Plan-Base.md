@@ -1,4 +1,4 @@
-# HTTPEngine Library
+# HTTPClient Library
 
 * Favour Swift naming conventions for public facing functionality.
 	* Make use of camel case for property names.

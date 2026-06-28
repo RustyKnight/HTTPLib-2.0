@@ -1,4 +1,4 @@
-# Feature Specification: HTTPEngine Library
+# Feature Specification: HTTPClient Library
 
 **Feature Branch**: `001-http-engine-library`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Build a simple HTTP library which covers all the major methods of the protocol called `HTTPEngine`. The intention is to provide a simple, re-usable HTTP implementation." (Sources/Feature-HTTPLibrary.md)
+**Input**: User description: "Build a simple HTTP library which covers all the major methods of the protocol called `HTTPClient`. The intention is to provide a simple, re-usable HTTP implementation." (Sources/Feature-HTTPLibrary.md)
 
 ---
 
@@ -73,7 +73,7 @@ A developer needs fine-grained control over the underlying request mechanism. Th
 
 **Acceptance Scenarios**:
 
-1. **Given** a custom `URLSession` is provided to `HTTPEngine`, **When** any request method is called, **Then** all network activity is routed through the supplied session.
+1. **Given** a custom `URLSession` is provided to `HTTPClient`, **When** any request method is called, **Then** all network activity is routed through the supplied session.
 2. **Given** no `URLSession` is provided, **When** any request method is called, **Then** the library uses a sensible default (e.g., `URLSession.shared` or a default-configured session).
 3. **Given** a `URLRequest` customisation callback is supplied, **When** the internal `URLRequest` has been assembled, **Then** the callback is invoked with the assembled request before dispatch, and any mutations the callback makes are applied to the final outbound request.
 
@@ -117,8 +117,8 @@ A developer needs to upload files or structured form data using multipart form-d
 
 ### Functional Requirements
 
-- **FR-001**: The library MUST expose a primary type named `HTTPEngine` that serves as the entry point for all HTTP operations.
-- **FR-002**: `HTTPEngine` MUST provide operations for the GET, POST, PUT, and DELETE HTTP methods.
+- **FR-001**: The library MUST expose a primary type named `HTTPClient` that serves as the entry point for all HTTP operations.
+- **FR-002**: `HTTPClient` MUST provide operations for the GET, POST, PUT, and DELETE HTTP methods.
 - **FR-003**: All HTTP method operations MUST accept a `URL` as the only required argument; all other parameters MUST be optional with sensible defaults.
 - **FR-004**: All HTTP method operations MUST return a response value that includes the integer HTTP status code and an optional raw response body.
 - **FR-005**: All HTTP method operations MUST be asynchronous; blocking the caller's execution context is prohibited.
@@ -126,8 +126,8 @@ A developer needs to upload files or structured form data using multipart form-d
 - **FR-007**: The library MUST propagate task cancellation to the caller; a cancelled in-flight request MUST result in a cancellation error reaching the caller.
 - **FR-008**: Non-2xx HTTP status codes MUST NOT cause the library to throw; the status code MUST be returned to the caller for caller-side interpretation.
 - **FR-009**: All HTTP method operations MUST accept an optional dictionary of HTTP header name/value pairs; each entry MUST be transmitted as a header in the outbound request.
-- **FR-010**: `HTTPEngine` MUST accept an optional custom session object; all network operations MUST be routed through it when provided, falling back to a default session when absent.
-- **FR-011**: `HTTPEngine` MUST accept an optional `URLRequest` configuration callback; when provided, it MUST be invoked with the assembled request immediately before dispatch, and all mutations MUST be applied.
+- **FR-010**: `HTTPClient` MUST accept an optional custom session object; all network operations MUST be routed through it when provided, falling back to a default session when absent.
+- **FR-011**: `HTTPClient` MUST accept an optional `URLRequest` configuration callback; when provided, it MUST be invoked with the assembled request immediately before dispatch, and all mutations MUST be applied.
 - **FR-012**: POST and PUT MUST accept an optional request body in one of three variants: plain text, raw binary data, or an `Encodable` value serialised as JSON.
 - **FR-013**: DELETE MAY accept an optional request body using the same variants as POST/PUT.
 - **FR-014**: GET MUST NOT accept a request body through the standard body parameter (see A-02).
@@ -141,7 +141,7 @@ A developer needs to upload files or structured form data using multipart form-d
 
 ### Key Entities
 
-- **HTTPEngine**: The library's primary type. Holds the session reference and any default configuration. Provides GET, POST, PUT, DELETE, and multipart POST operations. Instances are reusable across multiple requests.
+- **HTTPClient**: The library's primary type. Holds the session reference and any default configuration. Provides GET, POST, PUT, DELETE, and multipart POST operations. Instances are reusable across multiple requests.
 - **HTTPResponse**: The value returned by every HTTP operation. Carries: the integer HTTP status code; an optional `Data` value representing the raw response body.
 - **FormItem**: A discriminated union representing one part of a multipart form-data upload. Has three variants:
   - **file** — References a file on disk. Fields: `name` (required String), file `URL` (required), `fileName` (optional String), `mimeType` (optional String, defaults to `application/octet-stream`).
@@ -165,13 +165,13 @@ A developer needs to upload files or structured form data using multipart form-d
 
 ## Assumptions
 
-- **A-01**: `HTTPEngine` is a concrete type (struct or class). An injectable session covers testability requirements; a protocol abstraction of the engine itself is deferred to a future version if needed.
+- **A-01**: `HTTPClient` is a concrete type (struct or class). An injectable session covers testability requirements; a protocol abstraction of the engine itself is deferred to a future version if needed.
 - **A-02**: The `GET` operation does not accept a standard request body parameter. GET bodies are non-standard; callers requiring unusual GET semantics may use the `URLRequest` customisation callback.
 - **A-03**: Supplying an empty form items list to the multipart POST operation is treated as a programmer error and results in a thrown validation error rather than an empty multipart body being sent.
 - **A-04**: Form item `name` values must be non-empty strings; an empty `name` triggers a validation error before any encoding begins.
 - **A-05**: The library does not decode response bodies; it returns raw `Data` and delegates JSON/text parsing to the caller.
 - **A-06**: Redirect handling follows platform-default `URLSession` behaviour; the library does not add custom redirect logic.
-- **A-07**: Concurrent use of the same `HTTPEngine` instance across multiple Swift `Task`s is safe; individual request operations do not share mutable state between invocations.
+- **A-07**: Concurrent use of the same `HTTPClient` instance across multiple Swift `Task`s is safe; individual request operations do not share mutable state between invocations.
 - **A-08**: Platform target is macOS 14+, Swift 6.0, distributed exclusively via Swift Package Manager, per the project constitution. No third-party networking dependencies are introduced.
 - **A-09**: The boundary string for multipart encoding is generated per-request (e.g., a UUID-derived string); callers cannot supply a custom boundary.
 - **A-10**: When a caller-supplied `URLRequest` customisation callback overrides the HTTP method set by the library, the resulting behaviour is the caller's responsibility; the library does not guard against this.

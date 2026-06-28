@@ -3,38 +3,38 @@
 **Feature**: `003-request-configuration` | **Date**: 2026-06-28 | **Phase 0**
 
 This feature supersedes the closure-based `RequestConfigurator` mechanism from
-Feature 001 with a typed, immutable `HTTPEngine.Configuration` value type nested
-inside `HTTPEngine` via `public extension HTTPEngine`. All design decisions below
-are derived from the existing codebase (`HTTPEngine.swift`, `RequestBuilder.swift`),
+Feature 001 with a typed, immutable `HTTPClient.Configuration` value type nested
+inside `HTTPClient` via `public extension HTTPClient`. All design decisions below
+are derived from the existing codebase (`HTTPClient.swift`, `RequestBuilder.swift`),
 prior feature design artifacts (001–002), the requirements in `spec.md`, and the
 project constitution. No NEEDS CLARIFICATION items remain.
 
 ---
 
-## Decision 1 — Type name: `HTTPEngine.Configuration`
+## Decision 1 — Type name: `HTTPClient.Configuration`
 
-**Decision**: The new type is named `HTTPEngine.Configuration`, declared as a
-nested type inside `HTTPEngine` via `public extension HTTPEngine { struct Configuration ... }`
-in `Sources/HTTPLib/RequestConfiguration.swift`.
+**Decision**: The new type is named `HTTPClient.Configuration`, declared as a
+nested type inside `HTTPClient` via `public extension HTTPClient { struct Configuration ... }`
+in `Sources/HTTPLib/HTTPClient.Configuration.swift`.
 
-**Rationale**: Nesting the type inside `HTTPEngine` expresses ownership clearly —
-this is configuration *for* an `HTTPEngine`, not a free-standing request concept.
-The name `Configuration` alone within the `HTTPEngine` namespace is noun-first and
+**Rationale**: Nesting the type inside `HTTPClient` expresses ownership clearly —
+this is configuration *for* an `HTTPClient`, not a free-standing request concept.
+The name `Configuration` alone within the `HTTPClient` namespace is noun-first and
 Swifty (Constitution I, API Design Guidelines), consistent with patterns like
-`URLSession.Configuration`. At call sites it reads as `HTTPEngine.Configuration`,
+`URLSession.Configuration`. At call sites it reads as `HTTPClient.Configuration`,
 which is self-documenting, and the default instance is accessed as `.default`
 (member-access shorthand) wherever the type is contextually inferred.
 
-**Alternatives considered**: Top-level `RequestConfiguration` — no clear ownership
+**Alternatives considered**: Top-level `HTTPClient.Configuration` — no clear ownership
 expressed; ambiguous whether it belongs to the engine or a request. `HTTPConfiguration` —
-adds `HTTP` prefix redundant inside `HTTPLib`. `URLRequestConfiguration` — too close
+adds `HTTP` prefix redundant inside `HTTPLib`. `URLHTTPClient.Configuration` — too close
 to `URLSessionConfiguration` in the Foundation namespace; would cause confusion.
 
 ---
 
 ## Decision 2 — Type kind: `public struct` with synthesised `Sendable`
 
-**Decision**: `HTTPEngine.Configuration` is a `public struct` with six `let` stored
+**Decision**: `HTTPClient.Configuration` is a `public struct` with six `let` stored
 properties. `Sendable` conformance is synthesised automatically by the Swift
 compiler.
 
@@ -57,7 +57,7 @@ a concrete default implementation — more extensible but violates YAGNI
 
 ## Decision 3 — Property set: exactly the six properties from FR-002
 
-**Decision**: `HTTPEngine.Configuration` exposes exactly six properties:
+**Decision**: `HTTPClient.Configuration` exposes exactly six properties:
 `timeoutInterval`, `cachePolicy`, `allowsCellularAccess`,
 `allowsExpensiveNetworkAccess`, `allowsConstrainedNetworkAccess`, and
 `httpShouldHandleCookies`.
@@ -110,11 +110,11 @@ behavioural change relative to existing callers.
 
 ---
 
-## Decision 5 — Static default instance: `HTTPEngine.Configuration.default`
+## Decision 5 — Static default instance: `HTTPClient.Configuration.default`
 
-**Decision**: `HTTPEngine.Configuration` exposes a `public static let default =
-Configuration()` property. `HTTPEngine.init` uses this as the default parameter
-value: `configuration: HTTPEngine.Configuration = .default`.
+**Decision**: `HTTPClient.Configuration` exposes a `public static let default =
+Configuration()` property. `HTTPClient.init` uses this as the default parameter
+value: `configuration: HTTPClient.Configuration = .default`.
 
 **Rationale**: FR-003 ("MUST expose a built-in default value obtainable without
 supplying any constructor arguments") and FR-004 ("MUST accept a configuration
@@ -126,10 +126,10 @@ the constant is initialised once. The name `default` is a Swift keyword used as 
 identifier in backtick context when needed, but as a plain label in `.default`
 member-access syntax it is clean and unambiguous.
 
-**Alternatives considered**: `HTTPEngine.Configuration()` as a direct default argument
+**Alternatives considered**: `HTTPClient.Configuration()` as a direct default argument
 expression — works but produces a new value on every call site. The static constant
 is semantically clearer ("this is THE default") and conveys intent. Named
-`HTTPEngine.Configuration.standard` — less idiomatic than `.default` for a "platform
+`HTTPClient.Configuration.standard` — less idiomatic than `.default` for a "platform
 baseline" configuration constant.
 
 ---
@@ -138,8 +138,8 @@ baseline" configuration constant.
 
 **Decision**: The `RequestConfigurator` typealias (`public typealias
 RequestConfigurator = @Sendable (inout URLRequest) -> Void`) and the
-`HTTPEngine.configurator: RequestConfigurator?` stored property are both removed.
-The `configurator` init parameter on `HTTPEngine.init` is also removed. This is a
+`HTTPClient.configurator: RequestConfigurator?` stored property are both removed.
+The `configurator` init parameter on `HTTPClient.init` is also removed. This is a
 **breaking public API change**.
 
 **Rationale**: FR-008 states: "The prior closure-based `URLRequest` customisation
@@ -148,30 +148,30 @@ be removed or replaced by the configuration struct." Spec assumption A-09 explic
 flags this as a breaking change requiring a MAJOR version bump. Removing the
 mechanism completely rather than keeping it as a deprecated path avoids an ambiguous
 dual-path API where the closure's arbitrary mutation could silently override
-`HTTPEngine.Configuration` properties (or vice versa).
+`HTTPClient.Configuration` properties (or vice versa).
 
 **Migration path for existing callers**:
 - Callers that used `configurator` to set `timeoutInterval` → use
-  `HTTPEngine(configuration: HTTPEngine.Configuration(timeoutInterval: …))`.
+  `HTTPClient(configuration: HTTPClient.Configuration(timeoutInterval: …))`.
 - Callers that used `configurator` to set `cachePolicy` → use
-  `HTTPEngine(configuration: HTTPEngine.Configuration(cachePolicy: …))`.
+  `HTTPClient(configuration: HTTPClient.Configuration(cachePolicy: …))`.
 - Callers that used `configurator` to inject arbitrary headers → use the `headers:`
-  parameter on the HTTP method call or `HTTPEngine(defaultHeaders:)` at init time.
+  parameter on the HTTP method call or `HTTPClient(defaultHeaders:)` at init time.
   Open-ended mutation outside the configuration struct's property surface is
   intentionally out of scope per spec A-01.
 
 **Existing tests affected** (two tests require migration, not new behaviour):
-- `HTTPEngineGetTests.configuratorMutatesRequestBeforeDispatch` — currently sets
+- `HTTPClientGetTests.configuratorMutatesRequestBeforeDispatch` — currently sets
   `timeoutInterval = 42` via configurator; migrated to
-  `HTTPEngine(configuration: HTTPEngine.Configuration(timeoutInterval: 42))`.
-- `HTTPEnginePostTests.configuratorIsInvokedForPostRequests` — currently injects an
+  `HTTPClient(configuration: HTTPClient.Configuration(timeoutInterval: 42))`.
+- `HTTPClientPostTests.configuratorIsInvokedForPostRequests` — currently injects an
   arbitrary header `X-Injected` via configurator; migrated to use the `headers:`
   parameter directly (the capability is unchanged; only the API surface changes).
 
 **Alternatives considered**: Deprecating `RequestConfigurator` instead of removing
 it — rejected; FR-008 says "removed or replaced"; keeping a deprecated form adds a
 dual-path API that is harder to test and document. Adding a `configurator` property
-to `HTTPEngine.Configuration` — rejected; that re-introduces open-ended mutation in
+to `HTTPClient.Configuration` — rejected; that re-introduces open-ended mutation in
 exactly the way spec A-01 says the struct supersedes ("The closure offered
 open-ended mutation; the struct provides a defined, auditable property surface").
 
@@ -180,7 +180,7 @@ open-ended mutation; the struct provides a defined, auditable property surface")
 ## Decision 7 — Assembly ordering: configuration applied before engine-managed properties
 
 **Decision**: In `RequestBuilder.buildRequest` and in the multipart inline path,
-`HTTPEngine.Configuration` properties are applied to the `URLRequest` immediately
+`HTTPClient.Configuration` properties are applied to the `URLRequest` immediately
 after URL and HTTP method are set, and before any header application. Engine-managed
 properties (HTTP body, Content-Type) are applied last.
 
@@ -196,7 +196,7 @@ Full 4-step assembly (replaces old 4-step):
 
 **Rationale**: FR-007 states "Configuration application MUST NOT override properties
 set by the engine." Spec A-07 states "Library-managed properties are always applied
-after the configuration struct's properties." Since `HTTPEngine.Configuration` targets
+after the configuration struct's properties." Since `HTTPClient.Configuration` targets
 `URLRequest` properties that are orthogonal to the engine-managed fields (method,
 URL, body, Content-Type header), there is no practical conflict. The ordering
 clarifies intent: the configuration struct sets up the transport-level properties
@@ -214,14 +214,14 @@ methods.
 
 ## Decision 8 — Configuration applied at engine-initialisation level, not per-request
 
-**Decision**: The `configuration` parameter is placed on `HTTPEngine.init`, not on
+**Decision**: The `configuration` parameter is placed on `HTTPClient.init`, not on
 individual HTTP method signatures. The engine stores it as `public let configuration:
 Configuration` and applies it uniformly to every dispatched request.
 
 ```swift
 public init(
     session: URLSession = .shared,
-    configuration: HTTPEngine.Configuration = .default,
+    configuration: HTTPClient.Configuration = .default,
     defaultHeaders: [String: String]? = nil
 )
 ```
@@ -257,7 +257,7 @@ this feature must be accompanied by a MAJOR version bump. The library's current
 pre-release version is `0.0.1` (established in Feature 001/002 contracts). The
 next version after this breaking change is `1.0.0`.
 
-**Rationale**: Removing a public property (`HTTPEngine.configurator`) and a public
+**Rationale**: Removing a public property (`HTTPClient.configurator`) and a public
 typealias (`RequestConfigurator`) from the library's public API is a breaking change.
 The constitution states: "Breaking public API changes MUST be flagged and MUST be
 accompanied by a MAJOR version bump in `Package.swift`." SPM libraries are
@@ -275,12 +275,12 @@ rejected; the constitution and A-09 both specify MAJOR for this class of change.
 
 | Unknown | Resolution |
 |---------|-----------|
-| Type name | `HTTPEngine.Configuration` (nested type, Decision 1) |
+| Type name | `HTTPClient.Configuration` (nested type, Decision 1) |
 | Type kind | `public struct`, Sendable synthesised (Decision 2) |
 | Properties | Exactly 6: timeout, cachePolicy, cellular/expensive/constrained access, cookies (Decision 3) |
 | Default values | Match `URLRequest` platform defaults (Decision 4) |
-| Static default | `HTTPEngine.Configuration.default` used as `HTTPEngine.init` parameter default (Decision 5) |
+| Static default | `HTTPClient.Configuration.default` used as `HTTPClient.init` parameter default (Decision 5) |
 | Configurator removal | Fully removed (breaking change); two existing tests migrated (Decision 6) |
 | Assembly ordering | Config applied at Step 1 (after URL+method); headers/body steps unchanged (Decision 7) |
-| Configuration scope | Engine-level (on `HTTPEngine.init`), not per-request (Decision 8) |
+| Configuration scope | Engine-level (on `HTTPClient.init`), not per-request (Decision 8) |
 | Version bump | `0.0.1` → `1.0.0` via git tag at merge (Decision 9) |

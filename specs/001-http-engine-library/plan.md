@@ -1,4 +1,4 @@
-# Implementation Plan: HTTPEngine Library
+# Implementation Plan: HTTPClient Library
 
 **Branch**: `001-http-engine-library` | **Date**: 2026-06-28 | **Spec**: [spec.md](spec.md)
 
@@ -7,7 +7,7 @@
 
 ## Summary
 
-Build `HTTPEngine`, a reusable Swift 6 HTTP library exposing GET, POST, PUT, and DELETE via
+Build `HTTPClient`, a reusable Swift 6 HTTP library exposing GET, POST, PUT, and DELETE via
 `URLSession` / `URLRequest` on macOS 14+. The library follows a progressive-disclosure API
 (URL-only minimum; all other parameters optional) and surfaces all failures as typed throws.
 POST additionally supports multipart form-data upload via a dedicated `[FormItem]` overload.
@@ -47,7 +47,7 @@ isolation without requiring a protocol abstraction over `URLSession` in the publ
 |---|-----------|--------|-------|
 | I | Code Quality — explicit types, zero warnings, no force-unwraps, YAGNI | ✅ PASS | All public API will use explicit types; `!` is prohibited in public API; `swift build` with zero warnings is the CI gate. |
 | II | Testing Standards — TDD, XCTest, async test bodies, `swift test` runnable | ⚠️ JUSTIFIED DEVIATION | **Swift Testing** is used instead of XCTest, per plan notes and the existing test scaffold (`import Testing`, `@Test`, `@Suite`). Spirit of the principle is fully met: tests are written Red→Green→Refactor, are natively `async`-capable, and run via `swift test`. See Complexity Tracking. |
-| III | API UX — progressive disclosure, URL-only minimum, typed throws, Swifty naming | ✅ PASS | FR-003 / SC-001 mandate URL-only minimum; all other parameters are optional with sensible defaults. Errors are typed `HTTPEngineError`. Method names follow Swift API Design Guidelines (verb-first, no redundant type names). |
+| III | API UX — progressive disclosure, URL-only minimum, typed throws, Swifty naming | ✅ PASS | FR-003 / SC-001 mandate URL-only minimum; all other parameters are optional with sensible defaults. Errors are typed `HTTPClientError`. Method names follow Swift API Design Guidelines (verb-first, no redundant type names). |
 | IV | Performance & Reliability — async/await, cancellation, Sendable, no silent errors | ✅ PASS | `URLSession.data(for:delegate:)` is used; `Task.checkCancellation()` is called before dispatch; `CancellationError` propagates directly (not wrapped); all public types conform to `Sendable`. |
 | V | Modern Standards — Swift 6.0, macOS 14+, URLSession only, SPM only | ✅ PASS | `Package.swift` already declares `swift-tools-version: 6.0` and `.macOS(.v14)`. No third-party deps. SPM only. |
 
@@ -72,23 +72,23 @@ specs/001-http-engine-library/
 
 ```text
 Sources/HTTPLib/
-├── HTTPEngine.swift           # Primary public type: init + all HTTP method operations
+├── HTTPClient.swift           # Primary public type: init + all HTTP method operations
 ├── HTTPResponse.swift         # HTTPResponse: statusCode + optional body Data
 ├── RequestBody.swift          # RequestBody enum: .text / .binary / .json
 ├── FormItem.swift             # FormItem enum: .file / .data / .property
-├── HTTPEngineError.swift      # Typed error enum covering all failure paths
+├── HTTPClientError.swift      # Typed error enum covering all failure paths
 └── Internal/
     ├── MultipartEncoder.swift # RFC 2046 multipart/form-data encoding (internal)
     └── RequestBuilder.swift   # URLRequest assembly: headers, body, method (internal)
 
 Tests/HTTPLibTests/
-├── HTTPEngineGetTests.swift
-├── HTTPEnginePostTests.swift
-├── HTTPEnginePutTests.swift
-├── HTTPEngineDeleteTests.swift
-├── HTTPEngineMultipartTests.swift
-├── HTTPEngineHeaderTests.swift
-├── HTTPEngineCancellationTests.swift
+├── HTTPClientGetTests.swift
+├── HTTPClientPostTests.swift
+├── HTTPClientPutTests.swift
+├── HTTPClientDeleteTests.swift
+├── HTTPClientMultipartTests.swift
+├── HTTPClientHeaderTests.swift
+├── HTTPClientCancellationTests.swift
 ├── MultipartEncoderTests.swift
 └── Helpers/
     └── MockURLProtocol.swift  # URLProtocol subclass for request interception in tests
@@ -99,7 +99,7 @@ public API files (one type per file) plus an `Internal/` sub-directory for imple
 that are not part of the public API surface. `Tests/HTTPLibTests/` mirrors concerns with one
 test file per public surface area, plus `Helpers/` for shared test infrastructure
 (`MockURLProtocol`). `HTTPLib.swift` (the SPM-generated stub) is superseded by the files above;
-its `HTTPLib` struct placeholder should be removed when `HTTPEngine` is introduced.
+its `HTTPLib` struct placeholder should be removed when `HTTPClient` is introduced.
 
 ## Complexity Tracking
 

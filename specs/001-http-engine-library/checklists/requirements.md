@@ -1,4 +1,4 @@
-# Specification Quality Checklist: HTTPEngine Library
+# Specification Quality Checklist: HTTPClient Library
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-06-28

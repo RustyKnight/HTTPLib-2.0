@@ -12,7 +12,7 @@ This is an experiment with Github SpecKit and Github Copilot.
 
 - Async API (`async throws`) built on `URLSession`
 - Engine-level default headers (applied to every request)
-- Engine-level request transport configuration via `HTTPEngine.Configuration`
+- Engine-level request transport configuration via `HTTPClient.Configuration`
 - Per-request headers
 - Optional custom `URLSession` injection (great for testing)
 - Request bodies for `POST` / `PUT` / `DELETE`:
@@ -20,7 +20,7 @@ This is an experiment with Github SpecKit and Github Copilot.
   - raw data (`.binary(Data, contentType:)`)
   - JSON (`.json(any Encodable)`)
 - Multipart form-data upload support for `POST`
-- Typed errors via `HTTPEngineError`
+- Typed errors via `HTTPClientError`
 - Non-2xx HTTP responses are returned (not thrown)
 
 # Requirements
@@ -48,7 +48,7 @@ targets: [
 import HTTPLib
 import Foundation
 
-let engine = HTTPEngine()
+let engine = HTTPClient()
 let response = try await engine.get(URL(string: "https://httpbin.org/get")!)
 
 print(response.statusCode)
@@ -63,7 +63,7 @@ if let body = response.body {
 import HTTPLib
 import Foundation
 
-let engine = HTTPEngine(
+let engine = HTTPClient(
     defaultHeaders: [
         "Authorization": "Bearer <token>",
         "Accept": "application/json"
@@ -91,7 +91,7 @@ struct CreateUser: Encodable {
     let email: String
 }
 
-let engine = HTTPEngine()
+let engine = HTTPClient()
 let url = URL(string: "https://api.example.com/users")!
 
 let response = try await engine.post(
@@ -108,18 +108,18 @@ import HTTPLib
 import Foundation
 
 let sessionConfig = URLSessionConfiguration.default
-let requestConfig = HTTPEngine.Configuration(
+let requestConfig = HTTPClient.Configuration(
     timeoutInterval: 15,
     cachePolicy: .reloadIgnoringLocalCacheData
 )
 
-let engine = HTTPEngine(
+let engine = HTTPClient(
     configuration: requestConfig,
     defaultHeaders: ["Accept": "application/json"]
 )
 
 let customSession = URLSession(configuration: sessionConfig)
-let engineWithCustomSession = HTTPEngine(
+let engineWithCustomSession = HTTPClient(
     session: customSession,
     configuration: requestConfig
 )
@@ -131,7 +131,7 @@ let engineWithCustomSession = HTTPEngine(
 import HTTPLib
 import Foundation
 
-let engine = HTTPEngine()
+let engine = HTTPClient()
 let payload = Data([0x01, 0x02, 0x03])
 
 let response = try await engine.put(
@@ -153,7 +153,7 @@ let items: [FormItem] = [
     .file(name: "avatar", url: fileURL, fileName: "avatar.jpg", mimeType: "image/jpeg")
 ]
 
-let response = try await HTTPEngine().post(
+let response = try await HTTPClient().post(
     URL(string: "https://api.example.com/upload")!,
     formItems: items
 )
@@ -165,10 +165,10 @@ let response = try await HTTPEngine().post(
 import HTTPLib
 
 do {
-    _ = try await HTTPEngine().get(URL(string: "https://example.com")!)
+    _ = try await HTTPClient().get(URL(string: "https://example.com")!)
 } catch is CancellationError {
     // Task was cancelled
-} catch let error as HTTPEngineError {
+} catch let error as HTTPClientError {
     switch error {
     case .jsonEncodingFailed:
         break

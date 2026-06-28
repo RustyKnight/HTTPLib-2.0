@@ -1,4 +1,4 @@
-# Data Model: HTTPEngine Library
+# Data Model: HTTPClient Library
 
 **Feature**: `001-http-engine-library` | **Date**: 2026-06-28 | **Phase 1**
 
@@ -8,11 +8,11 @@ See `research.md` for the rationale behind each design decision referenced below
 
 ## Public Types
 
-### `HTTPEngine`
+### `HTTPClient`
 
 **Kind**: `public struct`
 **Conforms to**: `Sendable` (synthesised — all stored properties are `let` and `Sendable`)
-**Location**: `Sources/HTTPLib/HTTPEngine.swift`
+**Location**: `Sources/HTTPLib/HTTPClient.swift`
 **Spec ref**: FR-001, FR-002, FR-010, FR-011, A-01, A-07
 
 #### Stored Properties
@@ -42,8 +42,8 @@ All operations are `async throws -> HTTPResponse`.
 
 #### Validation Rules
 
-- `formItems` must be non-empty — throws `HTTPEngineError.emptyFormItems` (FR-020).
-- Each `FormItem` must have a non-empty `name` — throws `HTTPEngineError.emptyFormItemName` (FR-021).
+- `formItems` must be non-empty — throws `HTTPClientError.emptyFormItems` (FR-020).
+- Each `FormItem` must have a non-empty `name` — throws `HTTPClientError.emptyFormItemName` (FR-021).
 - These checks run before any encoding or network activity begins.
 
 #### Concurrency & Lifecycle
@@ -87,7 +87,7 @@ the caller for interpretation.
 
 #### Validation Rules
 
-- `.json` encoding failure: throws `HTTPEngineError.jsonEncodingFailed(underlying:)` before
+- `.json` encoding failure: throws `HTTPClientError.jsonEncodingFailed(underlying:)` before
   any network activity begins (FR-006, spec user story 2 AC-04).
 
 ---
@@ -128,17 +128,17 @@ enum case. The enum cases themselves remain public for exhaustive pattern matchi
 
 #### Validation Rules
 
-- `name` must be non-empty on every case; validated by `HTTPEngine` before encoding (FR-021).
-- `.file` with an unreadable `url`: throws `HTTPEngineError.fileReadFailed(url:underlying:)` during
+- `name` must be non-empty on every case; validated by `HTTPClient` before encoding (FR-021).
+- `.file` with an unreadable `url`: throws `HTTPClientError.fileReadFailed(url:underlying:)` during
   encoding, before network activity (spec user story 5 AC-03, FR-006).
 
 ---
 
-### `HTTPEngineError`
+### `HTTPClientError`
 
 **Kind**: `public enum`
 **Conforms to**: `Error`, `Sendable`
-**Location**: `Sources/HTTPLib/HTTPEngineError.swift`
+**Location**: `Sources/HTTPLib/HTTPClientError.swift`
 **Spec ref**: FR-006
 
 | Case | Parameters | Trigger |
@@ -150,7 +150,7 @@ enum case. The enum cases themselves remain public for exhaustive pattern matchi
 | `networkError(any Error)` | Underlying `URLError` or similar | URLSession throws during data task |
 
 **Note**: `CancellationError` is **not** wrapped in this enum — it propagates directly (FR-007,
-research Decision 8). `HTTPEngineError` covers library-originated and URLSession-originated
+research Decision 8). `HTTPClientError` covers library-originated and URLSession-originated
 failures; `CancellationError` is a Swift Concurrency primitive and must remain unwrapped.
 
 ---
@@ -158,7 +158,7 @@ failures; `CancellationError` is a Swift Concurrency primitive and must remain u
 ### `RequestConfigurator`
 
 **Kind**: `public typealias`
-**Location**: `Sources/HTTPLib/HTTPEngine.swift`
+**Location**: `Sources/HTTPLib/HTTPClient.swift`
 **Spec ref**: FR-011
 
 ```swift
@@ -188,9 +188,9 @@ static func encode(_ items: [FormItem]) throws -> (body: Data, contentType: Stri
 - Encodes each part with CRLF (`\r\n`) line endings per RFC 2046 §4.1.
 - Returns the encoded body `Data` and the complete `Content-Type` header value
   (e.g., `multipart/form-data; boundary=----Boundary-XXXX`).
-- Throws `HTTPEngineError.fileReadFailed` if a `.file` item is unreadable.
-- Throws `HTTPEngineError.emptyFormItemName` if any item has an empty `name`.
-  (Validation is also performed by `HTTPEngine` before calling the encoder, so this
+- Throws `HTTPClientError.fileReadFailed` if a `.file` item is unreadable.
+- Throws `HTTPClientError.emptyFormItemName` if any item has an empty `name`.
+  (Validation is also performed by `HTTPClient` before calling the encoder, so this
   acts as a defence-in-depth guard.)
 
 ---
@@ -215,7 +215,7 @@ Responsibilities:
 ## Type Relationships
 
 ```
-HTTPEngine
+HTTPClient
   ├── holds → URLSession                (Foundation — injected or .shared)
   ├── holds → RequestConfigurator?      (typealias for @Sendable closure)
   ├── delegates assembly to → RequestBuilder (internal)
@@ -227,13 +227,13 @@ HTTPEngine
   └── returns → HTTPResponse            (.statusCode + .body)
 
 Errors thrown (public)
-  └── HTTPEngineError
+  └── HTTPClientError
         ├── jsonEncodingFailed   (from RequestBuilder .json encoding)
         ├── fileReadFailed       (from MultipartEncoder .file reading)
-        ├── emptyFormItems       (from HTTPEngine validation gate)
-        ├── emptyFormItemName    (from HTTPEngine validation gate)
+        ├── emptyFormItems       (from HTTPClient validation gate)
+        ├── emptyFormItemName    (from HTTPClient validation gate)
         └── networkError         (from URLSession data task)
 
-Errors that bypass HTTPEngineError (propagate directly)
+Errors that bypass HTTPClientError (propagate directly)
   └── CancellationError          (from Task.checkCancellation / URLSession async)
 ```

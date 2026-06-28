@@ -2,13 +2,13 @@ import Testing
 import Foundation
 @testable import HTTPLib
 
-@Suite("HTTPEngine Multipart POST") struct HTTPEngineMultipartTests {
+@Suite("HTTPClient Multipart POST") struct HTTPClientMultipartTests {
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPEngine, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPEngine(session: session), mock)
+        return (HTTPClient(session: session), mock)
     }
 
     // FR-020: empty formItems throws before network activity
@@ -17,8 +17,8 @@ import Foundation
         // No stub needed — should throw before any dispatch
         do {
             _ = try await engine.post(url, formItems: [])
-            Issue.record("Expected HTTPEngineError.emptyFormItems")
-        } catch HTTPEngineError.emptyFormItems {
+            Issue.record("Expected HTTPClientError.emptyFormItems")
+        } catch HTTPClientError.emptyFormItems {
             // PASS
         }
         #expect(mock.capturedRequest == nil)
@@ -29,8 +29,8 @@ import Foundation
         let (engine, mock) = makeEngine()
         do {
             _ = try await engine.post(url, formItems: [FormItem.property(name: "", value: "x")])
-            Issue.record("Expected HTTPEngineError.emptyFormItemName")
-        } catch HTTPEngineError.emptyFormItemName {
+            Issue.record("Expected HTTPClientError.emptyFormItemName")
+        } catch HTTPClientError.emptyFormItemName {
             // PASS
         }
         #expect(mock.capturedRequest == nil)

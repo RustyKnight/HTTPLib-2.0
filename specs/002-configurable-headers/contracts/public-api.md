@@ -22,7 +22,7 @@ import HTTPLib
 
 ---
 
-## Changed Type: `HTTPEngine`
+## Changed Type: `HTTPClient`
 
 ### Updated initialiser
 
@@ -95,12 +95,12 @@ public func delete(
 
 ### Header priority (updated — 4 tiers)
 
-The following order applies to every request dispatched through `HTTPEngine`,
+The following order applies to every request dispatched through `HTTPClient`,
 for all HTTP methods including multipart POST:
 
 | Priority | Source | Rule |
 |----------|--------|------|
-| 1 (lowest) | `HTTPEngine.defaultHeaders` | Applied first; establishes the baseline for this request. |
+| 1 (lowest) | `HTTPClient.defaultHeaders` | Applied first; establishes the baseline for this request. |
 | 2 | Per-request `headers` argument | Applied second; overwrites any conflicting default (FR-004). |
 | 3 | Library-required headers (e.g., `Content-Type` for body encoding) | Applied third; overwrites any conflicting caller or default value (FR-005). |
 | 4 (highest) | `RequestConfigurator` callback | Applied last; any mutations are final. |
@@ -114,13 +114,13 @@ begins from the same `defaultHeaders` base (FR-007, A-02).
 
 ### Backward-compatibility guarantee
 
-Existing code that constructs `HTTPEngine` without `defaultHeaders`:
+Existing code that constructs `HTTPClient` without `defaultHeaders`:
 
 ```swift
-HTTPEngine()
-HTTPEngine(session: mySession)
-HTTPEngine(configurator: myConfigurator)
-HTTPEngine(session: mySession, configurator: myConfigurator)
+HTTPClient()
+HTTPClient(session: mySession)
+HTTPClient(configurator: myConfigurator)
+HTTPClient(session: mySession, configurator: myConfigurator)
 ```
 
 compiles and behaves identically to the pre-feature baseline. No source-level
@@ -137,7 +137,7 @@ The following guarantees are inherited unchanged:
 - Non-throwing status codes: 1xx–5xx HTTP status codes are returned in
   `HTTPResponse.statusCode`, never thrown.
 - GET body restriction: `get(_:headers:)` accepts no body parameter.
-- Error contract: failures surface as `HTTPEngineError` (except `CancellationError`).
+- Error contract: failures surface as `HTTPClientError` (except `CancellationError`).
 
 ---
 
@@ -145,11 +145,11 @@ The following guarantees are inherited unchanged:
 
 ```swift
 // ── Pre-feature baseline (unchanged) ──────────────────────────────────────
-let engine = HTTPEngine()
+let engine = HTTPClient()
 let response = try await engine.get(url)
 
 // ── Default headers configured at construction ─────────────────────────────
-let apiEngine = HTTPEngine(defaultHeaders: [
+let apiEngine = HTTPClient(defaultHeaders: [
     "X-API-Key":    "abc123",
     "X-Client-App": "MyApp/1.0"
 ])
@@ -171,12 +171,12 @@ let full = try await apiEngine.get(url)  // carries the original default "X-API-
 // ── Library headers override conflicting defaults ─────────────────────────
 // Even if defaultHeaders contains "Content-Type: text/xml", a JSON body
 // results in "Content-Type: application/json" in the outbound request (FR-005)
-let strictEngine = HTTPEngine(defaultHeaders: ["Content-Type": "text/xml"])
+let strictEngine = HTTPClient(defaultHeaders: ["Content-Type": "text/xml"])
 let jsonResponse = try await strictEngine.post(url, body: .json(myModel))
 // ↑ outbound Content-Type == "application/json" (library wins, FR-005)
 
 // ── All init parameters together ──────────────────────────────────────────
-let fullEngine = HTTPEngine(
+let fullEngine = HTTPClient(
     session:        customSession,
     configurator:   { $0.timeoutInterval = 10 },
     defaultHeaders: ["Authorization": "Bearer token"]

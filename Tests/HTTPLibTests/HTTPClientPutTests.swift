@@ -2,13 +2,13 @@ import Testing
 import Foundation
 @testable import HTTPLib
 
-@Suite("HTTPEngine PUT") struct HTTPEnginePutTests {
+@Suite("HTTPClient PUT") struct HTTPClientPutTests {
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPEngine, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPEngine(session: session), mock)
+        return (HTTPClient(session: session), mock)
     }
 
     // MARK: - User Story 1

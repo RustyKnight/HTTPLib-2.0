@@ -1,13 +1,13 @@
 import Foundation
 
 // FR-005, FR-007, FR-009: request assembly — configuration, headers, body
-// Feature 003: replaced configurator: RequestConfigurator? with configuration: RequestConfiguration (FR-008)
+// Feature 003: replaced configurator: RequestConfigurator? with configuration: HTTPClient.Configuration (FR-008)
 internal enum RequestBuilder {
 
     /// Assembles a URLRequest ready for dispatch.
     ///
     /// Assembly order (Feature 003, data-model.md):
-    ///   Step 1 — RequestConfiguration transport properties (applied first; FR-005, A-07)
+    ///   Step 1 — HTTPClient.Configuration transport properties (applied first; FR-005, A-07)
     ///   Step 2 — defaultHeaders (lowest header-priority tier; FR-002, FR-004)
     ///   Step 3 — per-request headers (overwrites step 2 conflicts; research Decision 6)
     ///   Step 4 — library Content-Type + httpBody (highest header-priority tier; FR-005)
@@ -16,13 +16,13 @@ internal enum RequestBuilder {
         method: HTTPMethod,
         headers: [String: String]?,
         body: RequestBody?,
-        configuration: HTTPEngine.Configuration,    // Feature 003: replaces configurator (FR-008)
+        configuration: HTTPClient.Configuration,    // Feature 003: replaces configurator (FR-008)
         defaultHeaders: [String: String]         // FR-002: engine-level default headers (lowest header priority)
     ) throws -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
 
-        // Step 1 — apply RequestConfiguration transport properties (Feature 003, FR-005, A-07)
+        // Step 1 — apply HTTPClient.Configuration transport properties (Feature 003, FR-005, A-07)
         // Applied before headers and body; engine-managed properties (method, URL, body, headers)
         // are set in steps 2–4 and always take final precedence (FR-007).
         request.timeoutInterval = configuration.timeoutInterval
@@ -61,7 +61,7 @@ internal enum RequestBuilder {
                 do {
                     request.httpBody = try JSONEncoder().encode(v)
                 } catch {
-                    throw HTTPEngineError.jsonEncodingFailed(error)
+                    throw HTTPClientError.jsonEncodingFailed(error)
                 }
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }

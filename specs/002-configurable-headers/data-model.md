@@ -10,11 +10,11 @@ All types not listed here are **unchanged** from Feature 001
 
 ## Changed Public Types
 
-### `HTTPEngine` (updated)
+### `HTTPClient` (updated)
 
 **Kind**: `public struct`
 **Conforms to**: `Sendable` (synthesised — all stored properties are `let` and `Sendable`)
-**Location**: `Sources/HTTPLib/HTTPEngine.swift`
+**Location**: `Sources/HTTPLib/HTTPClient.swift`
 **Spec ref**: FR-001, FR-002, FR-004, FR-005, FR-006, FR-007, FR-008, A-01–A-06
 
 #### Stored Properties
@@ -71,7 +71,7 @@ implements this contract at the Foundation level — no custom case-folding is r
 #### Concurrency & Lifecycle
 
 `defaultHeaders` is a `let` property fixed at init; it is never mutated after
-construction. This makes concurrent calls on the same `HTTPEngine` instance from
+construction. This makes concurrent calls on the same `HTTPClient` instance from
 multiple `Task`s safe with respect to the default headers value (A-02, A-04).
 All other concurrency guarantees from Feature 001 are unchanged.
 
@@ -98,8 +98,8 @@ static func buildRequest(
 ) throws -> URLRequest
 ```
 
-The new `defaultHeaders` parameter is always passed from `HTTPEngine.dispatch(...)`.
-When `HTTPEngine.defaultHeaders` is empty (`[:]`), step 1 is a no-op; the resulting
+The new `defaultHeaders` parameter is always passed from `HTTPClient.dispatch(...)`.
+When `HTTPClient.defaultHeaders` is empty (`[:]`), step 1 is a no-op; the resulting
 `URLRequest` is identical to what Feature 001 produced.
 
 #### Updated header-assembly steps
@@ -117,7 +117,7 @@ Steps 2–4 are unchanged from Feature 001.
 
 ## Changed Inline Assembly (Multipart Path)
 
-The `HTTPEngine.post(_:formItems:headers:)` method assembles a `URLRequest` inline
+The `HTTPClient.post(_:formItems:headers:)` method assembles a `URLRequest` inline
 (not via `RequestBuilder`). This inline block is updated to apply the same four-step
 merge:
 
@@ -128,7 +128,7 @@ Step 3 — library multipart Content-Type (overwrites step 1–2 conflicts)
 Step 4 — self.configurator callback
 ```
 
-This change is internal to `HTTPEngine`; the method's public signature is unchanged
+This change is internal to `HTTPClient`; the method's public signature is unchanged
 (FR-008). See research Decision 5 for rationale.
 
 ---
@@ -141,7 +141,7 @@ The following types are unaffected by this feature and are specified in full in
 - `HTTPResponse` — no change
 - `RequestBody` — no change
 - `FormItem` — no change
-- `HTTPEngineError` — no change (no new error cases)
+- `HTTPClientError` — no change (no new error cases)
 - `RequestConfigurator` — no change
 - `MultipartEncoder` (internal) — no change
 
@@ -150,7 +150,7 @@ The following types are unaffected by this feature and are specified in full in
 ## Type Relationships (updated)
 
 ```
-HTTPEngine
+HTTPClient
   ├── holds → URLSession                (Foundation — injected or .shared)
   ├── holds → RequestConfigurator?      (typealias for @Sendable closure)
   ├── holds → defaultHeaders: [String: String]   ← NEW (immutable, empty when nil passed)
@@ -171,10 +171,10 @@ Header merge order (lowest → highest priority):
 
 ## New Test Entity
 
-### `HTTPEngineDefaultHeaderTests`
+### `HTTPClientDefaultHeaderTests`
 
 **Kind**: Swift Testing `@Suite`
-**Location**: `Tests/HTTPLibTests/HTTPEngineDefaultHeaderTests.swift`
+**Location**: `Tests/HTTPLibTests/HTTPClientDefaultHeaderTests.swift`
 **Spec ref**: All US1/US2/US3 acceptance scenarios + edge cases
 
 | Test | Scenario | Spec ref |

@@ -1,4 +1,4 @@
-# Public API Contract: HTTPEngine Library
+# Public API Contract: HTTPClient Library
 
 **Feature**: `001-http-engine-library` | **Date**: 2026-06-28 | **Phase 1**
 
@@ -19,10 +19,10 @@ import HTTPLib
 
 ## Types
 
-### `HTTPEngine`
+### `HTTPClient`
 
 ```swift
-public struct HTTPEngine: Sendable {
+public struct HTTPClient: Sendable {
 
     public init(
         session: URLSession = .shared,
@@ -98,12 +98,12 @@ public struct HTTPEngine: Sendable {
   immediately, before any network activity or encoding begins.
 - If the `Task` is cancelled while a request is in-flight, `CancellationError` is
   propagated to the caller via `URLSession`'s native Swift Concurrency integration.
-- **`CancellationError` is never wrapped in `HTTPEngineError`.**
-- Concurrent calls on the same `HTTPEngine` instance from multiple `Task`s are safe.
+- **`CancellationError` is never wrapped in `HTTPClientError`.**
+- Concurrent calls on the same `HTTPClient` instance from multiple `Task`s are safe.
 
 #### Error contract
 
-Errors thrown are `HTTPEngineError` (see below) except for `CancellationError`
+Errors thrown are `HTTPClientError` (see below) except for `CancellationError`
 (which propagates directly). Non-2xx HTTP status codes are **not** thrown — they
 are returned in `HTTPResponse.statusCode`.
 
@@ -133,7 +133,7 @@ public enum RequestBody: @unchecked Sendable {
     /// Raw binary body. Transmitted verbatim. No `Content-Type` is set by the library.
     case binary(Data)
     /// Any `Encodable` value. Serialised by `JSONEncoder`. Sets `Content-Type: application/json`.
-    /// Throws `HTTPEngineError.jsonEncodingFailed` if encoding fails.
+    /// Throws `HTTPClientError.jsonEncodingFailed` if encoding fails.
     case json(any Encodable)
 }
 ```
@@ -193,10 +193,10 @@ public for exhaustive pattern matching in consumer code.
 
 ---
 
-### `HTTPEngineError`
+### `HTTPClientError`
 
 ```swift
-public enum HTTPEngineError: Error, Sendable {
+public enum HTTPClientError: Error, Sendable {
     /// A `.json` body failed `JSONEncoder.encode`. Contains the underlying encoder error.
     case jsonEncodingFailed(any Error)
     /// A `.file` form item URL could not be read. Contains the file URL and underlying error.
@@ -220,7 +220,7 @@ public enum HTTPEngineError: Error, Sendable {
 public typealias RequestConfigurator = @Sendable (inout URLRequest) -> Void
 ```
 
-Supplied to `HTTPEngine.init(configurator:)`. Invoked synchronously with the
+Supplied to `HTTPClient.init(configurator:)`. Invoked synchronously with the
 fully assembled `URLRequest` (all headers and body already applied) immediately
 before the request is dispatched to `URLSession`. Any mutations the callback
 applies are applied to the outbound request. Overriding the HTTP method set by the
@@ -241,10 +241,10 @@ library is the caller's responsibility (A-10).
 ### Body encoding order
 
 1. `RequestBody.json` — encoding happens before the request is dispatched; any
-   `JSONEncoder` failure throws `HTTPEngineError.jsonEncodingFailed` before network
+   `JSONEncoder` failure throws `HTTPClientError.jsonEncodingFailed` before network
    activity begins.
 2. Multipart `FormItem.file` — file contents are read before the request is
-   dispatched; any read failure throws `HTTPEngineError.fileReadFailed`.
+   dispatched; any read failure throws `HTTPClientError.fileReadFailed`.
 
 ### Non-throwing status codes
 
@@ -261,7 +261,7 @@ non-standard GET semantics with a body may use the `RequestConfigurator` callbac
 ## Minimal usage examples
 
 ```swift
-let engine = HTTPEngine()
+let engine = HTTPClient()
 
 // GET
 let response = try await engine.get(url)
@@ -277,10 +277,10 @@ let response = try await engine.post(url, formItems: [
 
 // Custom session (e.g., for unit tests)
 let session = URLSession(configuration: .ephemeral)
-let testEngine = HTTPEngine(session: session)
+let testEngine = HTTPClient(session: session)
 
 // URLRequest customisation
-let engineWithTimeout = HTTPEngine { request in
+let engineWithTimeout = HTTPClient { request in
     request.timeoutInterval = 10
 }
 ```

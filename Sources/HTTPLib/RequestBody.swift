@@ -10,6 +10,6 @@ public enum RequestBody: @unchecked Sendable {
     /// Raw binary body. Transmitted verbatim.
     case binary(Data, contentType: String)
     /// Any `Encodable` value. Serialised by `JSONEncoder`. Sets `Content-Type: application/json`.
-    /// Throws `HTTPEngineError.jsonEncodingFailed` if encoding fails.
+    /// Throws `HTTPClientError.jsonEncodingFailed` if encoding fails.
     case json(any Encodable)
 }

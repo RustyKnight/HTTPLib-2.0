@@ -2,13 +2,13 @@ import Testing
 import Foundation
 @testable import HTTPLib
 
-@Suite("HTTPEngine POST") struct HTTPEnginePostTests {
+@Suite("HTTPClient POST") struct HTTPClientPostTests {
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPEngine, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPEngine(session: session), mock)
+        return (HTTPClient(session: session), mock)
     }
 
     // MARK: - User Story 1
@@ -67,8 +67,8 @@ import Foundation
         // No stub needed — encoding should fail before any network activity
         do {
             _ = try await engine.post(url, body: .json(FailEncoder()))
-            Issue.record("Expected HTTPEngineError.jsonEncodingFailed to be thrown")
-        } catch HTTPEngineError.jsonEncodingFailed {
+            Issue.record("Expected HTTPClientError.jsonEncodingFailed to be thrown")
+        } catch HTTPClientError.jsonEncodingFailed {
             // PASS — correct error was thrown
         }
         // Nothing should have reached the session
@@ -87,7 +87,7 @@ import Foundation
     // US1-AC-1 (Feature 003): per-request headers applied to POST request (migrated from configurator test)
     @Test func perRequestHeadersAppliedToPostRequest() async throws {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPEngine(session: session)
+        let engine = HTTPClient(session: session)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
         _ = try await engine.post(url, headers: ["X-Injected": "injected-value"])
         #expect(mock.capturedRequest?.value(forHTTPHeaderField: "X-Injected") == "injected-value")

@@ -14,7 +14,7 @@
 
 ### User Story 1 - Zero-Config Default Behaviour (Priority: P1)
 
-A developer using `HTTPEngine` does not supply any configuration when making requests. The engine automatically applies a built-in default configuration to every outgoing request, giving requests predictable, sensible behaviour without any developer effort. From the call site, the API looks and behaves exactly as it did before this feature was introduced — the default configuration is invisible.
+A developer using `HTTPClient` does not supply any configuration when making requests. The engine automatically applies a built-in default configuration to every outgoing request, giving requests predictable, sensible behaviour without any developer effort. From the call site, the API looks and behaves exactly as it did before this feature was introduced — the default configuration is invisible.
 
 **Why this priority**: This is the migration safety baseline. Every existing call site must continue to work with no change. The built-in default must produce behaviour equivalent to the platform-standard `URLRequest` defaults. Without this, the feature breaks all existing consumers.
 
@@ -24,17 +24,17 @@ A developer using `HTTPEngine` does not supply any configuration when making req
 
 1. **Given** any request method (GET, POST, PUT, DELETE, multipart POST) is called without a configuration argument, **When** the `URLRequest` is assembled, **Then** all configuration properties reflect the values defined by the built-in default configuration.
 2. **Given** the built-in default configuration, **When** its property values are compared to the equivalent `URLRequest` platform defaults, **Then** they are identical; the default configuration introduces no observable behavioural change relative to the pre-feature baseline.
-3. **Given** an `HTTPEngine` instance created without any change to its existing initialiser parameters, **When** requests are made without a configuration argument, **Then** all existing tests from Feature 001 and Feature 002 pass unmodified.
+3. **Given** an `HTTPClient` instance created without any change to its existing initialiser parameters, **When** requests are made without a configuration argument, **Then** all existing tests from Feature 001 and Feature 002 pass unmodified.
 
 ---
 
 ### User Story 2 - Custom Engine-Level Configuration (Priority: P2)
 
-A developer needs to tune specific transport parameters for all requests through an engine — for example, extending the timeout for a slow endpoint, disabling cellular access for a metered-connection policy, or adjusting cache behaviour. They construct a configuration value carrying their desired settings and pass it to `HTTPEngine` at initialisation. The engine stores the configuration immutably and applies exactly those settings to every `URLRequest` it assembles.
+A developer needs to tune specific transport parameters for all requests through an engine — for example, extending the timeout for a slow endpoint, disabling cellular access for a metered-connection policy, or adjusting cache behaviour. They construct a configuration value carrying their desired settings and pass it to `HTTPClient` at initialisation. The engine stores the configuration immutably and applies exactly those settings to every `URLRequest` it assembles.
 
 **Why this priority**: This is the primary value of the feature. The struct replaces the previous closure-based mechanism and must cover the same configurable `URLRequest` properties with a simpler, more auditable API. Without this story, the feature delivers no capability beyond the status quo.
 
-**Independent Test**: Can be tested independently by creating an `HTTPEngine` with a configuration carrying a custom timeout duration, making a request against a mock session, and asserting the captured `URLRequest` carries that exact timeout duration.
+**Independent Test**: Can be tested independently by creating an `HTTPClient` with a configuration carrying a custom timeout duration, making a request against a mock session, and asserting the captured `URLRequest` carries that exact timeout duration.
 
 **Acceptance Scenarios**:
 
@@ -50,7 +50,7 @@ A developer needs to tune specific transport parameters for all requests through
 
 ### User Story 3 - Configuration Is Consistent Across All Requests on an Engine (Priority: P3)
 
-A developer creates an `HTTPEngine` instance with a specific configuration. Every request dispatched through that engine — regardless of call order or concurrency — consistently carries that engine's configuration. No configuration state leaks between engines, and the configuration value is not mutated by any request call.
+A developer creates an `HTTPClient` instance with a specific configuration. Every request dispatched through that engine — regardless of call order or concurrency — consistently carries that engine's configuration. No configuration state leaks between engines, and the configuration value is not mutated by any request call.
 
 **Why this priority**: Consistency is a safety property that underpins correct concurrent use. Without it, developers cannot reliably reason about the transport settings applied to requests dispatched through a given engine instance, which violates the thread-safety guarantees established in the project constitution.
 
@@ -60,7 +60,7 @@ A developer creates an `HTTPEngine` instance with a specific configuration. Ever
 
 1. **Given** an engine initialised with a custom timeout, **When** multiple sequential requests are dispatched through it, **Then** every captured `URLRequest` carries that exact custom timeout.
 2. **Given** a configuration value is constructed once and used to initialise an engine, **When** multiple requests are dispatched through that engine, **Then** each carries the same settings; the configuration value is not mutated by any request call.
-3. **Given** two `HTTPEngine` instances each initialised with a different configuration, **When** concurrent requests are dispatched through each engine, **Then** each captured `URLRequest` carries only its own engine's configuration settings and no cross-engine contamination is present.
+3. **Given** two `HTTPClient` instances each initialised with a different configuration, **When** concurrent requests are dispatched through each engine, **Then** each captured `URLRequest` carries only its own engine's configuration settings and no cross-engine contamination is present.
 
 ---
 
@@ -96,17 +96,17 @@ A developer supplies a configuration value on a request call. The engine-managed
 - **FR-001**: The library MUST define a dedicated configuration value type that carries `URLRequest` properties not otherwise set by the engine; HTTP method, URL, body, content-type (for body encoding), and caller-supplied headers are explicitly out of scope for this type.
 - **FR-002**: The configuration type MUST carry, at minimum, the following properties: request timeout duration, cache policy, cellular network access permission, expensive network access permission, constrained network access permission, and cookie handling behaviour.
 - **FR-003**: The configuration type MUST expose a built-in default value obtainable without supplying any constructor arguments; the default value's properties MUST be equivalent to the platform-standard `URLRequest` defaults for those same properties.
-- **FR-004**: The `HTTPEngine` initialiser MUST accept a `configuration` argument that defaults to the built-in default value when omitted; no existing call site that omits the `configuration` argument shall require any modification.
+- **FR-004**: The `HTTPClient` initialiser MUST accept a `configuration` argument that defaults to the built-in default value when omitted; no existing call site that omits the `configuration` argument shall require any modification.
 - **FR-005**: When a configuration argument is supplied, ALL properties carried by the configuration type MUST be applied to every `URLRequest` assembled by that engine; no configuration property may be silently ignored.
 - **FR-006**: Configuration values MUST be immutable after construction; no engine operation or request method may mutate a caller-supplied configuration value.
 - **FR-007**: Configuration application MUST NOT override properties set by the engine (HTTP method, URL, body, content-type for encoded bodies, caller-supplied headers); the engine's own property assignments MUST always take final precedence.
 - **FR-008**: The prior closure-based `URLRequest` customisation mechanism introduced in Feature 001 (FR-011) is superseded by this feature; it MUST be removed or replaced by the configuration struct, with no closure-based parameter remaining on any public method or initialiser after this feature is complete.
-- **FR-009**: The `HTTPEngine` initialiser signature MUST remain syntactically compatible at all call sites that do not supply a `configuration` argument; the configuration parameter MUST be additive and opt-in.
+- **FR-009**: The `HTTPClient` initialiser signature MUST remain syntactically compatible at all call sites that do not supply a `configuration` argument; the configuration parameter MUST be additive and opt-in.
 - **FR-010**: The configuration type MUST be safe for concurrent use; the same configuration value MUST be passable to multiple simultaneous request calls without introducing a data race.
 
 ### Key Entities
 
-- **`HTTPEngine.Configuration`** *(new)*: A value type nested inside `HTTPEngine` (declared via `public extension HTTPEngine`) carrying `URLRequest`-level settings not managed by the engine. Properties: timeout duration, cache policy, cellular access flag, expensive-network access flag, constrained-network access flag, cookie-handling flag. Provides a built-in default instance whose property values match platform `URLRequest` defaults. Immutable after construction.
+- **`HTTPClient.Configuration`** *(new)*: A value type nested inside `HTTPClient` (declared via `public extension HTTPClient`) carrying `URLRequest`-level settings not managed by the engine. Properties: timeout duration, cache policy, cellular access flag, expensive-network access flag, constrained-network access flag, cookie-handling flag. Provides a built-in default instance whose property values match platform `URLRequest` defaults. Immutable after construction.
 
 ---
 
@@ -126,7 +126,7 @@ A developer supplies a configuration value on a request call. The engine-managed
 
 - **A-01**: This feature supersedes the closure-based `URLRequest` customisation mechanism from Feature 001 (FR-011). The closure offered open-ended mutation; the struct provides a defined, auditable property surface. Any `URLRequest` property not exposed on the configuration struct is intentionally out of scope for this feature; callers with exotic requirements may request additions in a future iteration.
 - **A-02**: The minimum set of configurable properties is: request timeout duration, cache policy, cellular access permission, expensive network access permission, constrained network access permission, and cookie-handling behaviour. Network service type classification is excluded from the initial scope as its use cases are narrow; it may be added in a follow-up if needed.
-- **A-03**: Configuration is applied at engine-initialisation level via a `configuration: HTTPEngine.Configuration = .default` parameter on `HTTPEngine.init`. The engine stores the value as an immutable `public let configuration: Configuration` property and applies it to every `URLRequest` it assembles. This provides uniform transport settings across all requests through a given engine instance; callers that need different transport settings for different requests should create separate engine instances.
+- **A-03**: Configuration is applied at engine-initialisation level via a `configuration: HTTPClient.Configuration = .default` parameter on `HTTPClient.init`. The engine stores the value as an immutable `public let configuration: Configuration` property and applies it to every `URLRequest` it assembles. This provides uniform transport settings across all requests through a given engine instance; callers that need different transport settings for different requests should create separate engine instances.
 - **A-04**: The default configuration value produces property values that match `URLRequest`'s platform-defined defaults (e.g., 60-second timeout, use-protocol cache policy, cellular access enabled, cookie handling enabled). If platform defaults change in future OS versions, the library's default configuration should be updated to match.
 - **A-05**: The configuration type is a value type (struct), consistent with the Swift API Design Guidelines preference for value semantics for configuration data and with the constitution's requirement that all types crossing concurrency boundaries conform to `Sendable` (Principle V).
 - **A-06**: Configuration values are applied to each request's `URLRequest` independently; the engine does not retain or share any per-request configuration state between calls.

@@ -14,7 +14,7 @@
 
 ### User Story 1 - Default Headers Applied to Every Request (Priority: P1)
 
-A developer configures an `HTTPEngine` instance with a set of default HTTP headers at construction time (for example, `Authorization`, `X-API-Key`, or `User-Agent`). Every request subsequently issued through that instance automatically carries those headers without the developer repeating them on each call.
+A developer configures an `HTTPClient` instance with a set of default HTTP headers at construction time (for example, `Authorization`, `X-API-Key`, or `User-Agent`). Every request subsequently issued through that instance automatically carries those headers without the developer repeating them on each call.
 
 **Why this priority**: This is the entire value proposition of the feature. Without it the feature does not exist. It is fully self-contained and independently testable without any other story.
 
@@ -75,18 +75,18 @@ A developer needs to override one default header for a single request — for ex
 
 ### Functional Requirements
 
-- **FR-001**: `HTTPEngine` MUST accept an optional default headers parameter at initialisation; when omitted or supplied as an empty dictionary, all request behaviour MUST be identical to the pre-feature baseline.
-- **FR-002**: When `HTTPEngine` is initialised with a non-empty default headers dictionary, EVERY request dispatched through that instance MUST include those headers in the outbound request.
+- **FR-001**: `HTTPClient` MUST accept an optional default headers parameter at initialisation; when omitted or supplied as an empty dictionary, all request behaviour MUST be identical to the pre-feature baseline.
+- **FR-002**: When `HTTPClient` is initialised with a non-empty default headers dictionary, EVERY request dispatched through that instance MUST include those headers in the outbound request.
 - **FR-003**: Default headers MUST be merged with per-request headers supplied on any individual method call; when no key conflict exists, both sets MUST appear in the outbound request.
 - **FR-004**: When a per-request header and a default header share the same header name (compared case-insensitively), the per-request value MUST take precedence for that request; the stored default headers MUST NOT be mutated.
 - **FR-005**: When a default header name conflicts with a library-internal required header (such as the `Content-Type` set automatically for body encoding), the library's internally required value MUST take precedence, consistent with the precedence policy established in Feature 001.
 - **FR-006**: The default headers parameter type MUST match the existing per-request headers parameter type; no new public types are introduced by this feature.
-- **FR-007**: Default headers stored on an `HTTPEngine` instance MUST be immutable after initialisation; this feature MUST NOT introduce any method or property for mutating stored default headers post-construction.
+- **FR-007**: Default headers stored on an `HTTPClient` instance MUST be immutable after initialisation; this feature MUST NOT introduce any method or property for mutating stored default headers post-construction.
 - **FR-008**: The public API signatures of all existing HTTP method operations (GET, POST, PUT, DELETE, multipart POST) MUST remain unchanged; default headers MUST be applied transparently inside the engine without altering any method call site.
 
 ### Key Entities
 
-- **HTTPEngine** (updated): Gains a stored default headers property populated at initialisation and immutable thereafter. No other change to its public surface is required by this feature.
+- **HTTPClient** (updated): Gains a stored default headers property populated at initialisation and immutable thereafter. No other change to its public surface is required by this feature.
 
 ---
 
@@ -105,8 +105,8 @@ A developer needs to override one default header for a single request — for ex
 ## Assumptions
 
 - **A-01**: The header precedence order, from highest to lowest, is: library-internal required headers → per-request caller headers → instance default headers. This "most-specific wins" rule is consistent with the internal-vs-caller precedence already established in Feature 001 (US-3, A-03).
-- **A-02**: Default headers are immutable after `HTTPEngine` initialisation. Dynamic mutation of default headers after construction (add, remove, update) is out of scope for this feature; it may be addressed separately if needed.
+- **A-02**: Default headers are immutable after `HTTPClient` initialisation. Dynamic mutation of default headers after construction (add, remove, update) is out of scope for this feature; it may be addressed separately if needed.
 - **A-03**: Header name comparison for conflict detection uses case-insensitive matching, consistent with RFC 7230 §3.2. The implementation may normalise header names at the point of merging.
-- **A-04**: An `HTTPEngine` instance configured with default headers remains safe for concurrent use across multiple requests because the default headers value is fixed at construction and never mutated (see A-02), which prevents any data race on the stored headers.
+- **A-04**: An `HTTPClient` instance configured with default headers remains safe for concurrent use across multiple requests because the default headers value is fixed at construction and never mutated (see A-02), which prevents any data race on the stored headers.
 - **A-05**: The default headers parameter uses the same type as the per-request headers parameter introduced in Feature 001. No new public type is introduced for default headers.
 - **A-06**: A default header with an empty string value is treated as a valid header and is transmitted in the request. The library does not strip or reject empty-value headers.

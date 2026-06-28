@@ -28,7 +28,7 @@ The test target `HTTPLibTests` depends on `HTTPLib`. All tests run in-process wi
 
 ## User Story 1 — Zero-Config Default Behaviour (P1)
 
-**Goal**: Verify that creating an `HTTPEngine` without a `configuration:` argument
+**Goal**: Verify that creating an `HTTPClient` without a `configuration:` argument
 and calling any HTTP method produces a `URLRequest` whose transport properties match
 `URLRequest` platform defaults, and that all prior Feature 001/002 tests pass
 unmodified.
@@ -36,11 +36,11 @@ unmodified.
 ### Scenario 1a — Default configuration properties match platform defaults
 
 ```swift
-// Test file: HTTPEngineConfigurationTests.swift
-// Suite: HTTPEngineConfigurationTests
+// Test file: HTTPClientConfigurationTests.swift
+// Suite: HTTPClientConfigurationTests
 // Test:  defaultConfigurationMatchesPlatformDefaults
 
-let config = HTTPEngine.Configuration.default
+let config = HTTPClient.Configuration.default
 // Assert — all six properties match platform baseline
 #expect(config.timeoutInterval == 60.0)
 #expect(config.cachePolicy == .useProtocolCachePolicy)
@@ -55,11 +55,11 @@ let config = HTTPEngine.Configuration.default
 ### Scenario 1b — Default configuration applied when argument omitted
 
 ```swift
-// Test file: HTTPEngineConfigurationTests.swift
+// Test file: HTTPClientConfigurationTests.swift
 // Test: defaultConfigurationIsAppliedWhenNoArgumentSupplied
 
 let (session, mock) = MockURLProtocol.makePair()
-let engine = HTTPEngine(session: session)   // ← no configuration: argument
+let engine = HTTPClient(session: session)   // ← no configuration: argument
 mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 _ = try await engine.get(url)
 let captured = try #require(mock.capturedRequest)
@@ -71,23 +71,23 @@ let captured = try #require(mock.capturedRequest)
 ### Scenario 1c — Feature 001 and 002 regression suite passes
 
 ```bash
-swift test --filter HTTPEngineGetTests
-swift test --filter HTTPEnginePostTests
-swift test --filter HTTPEnginePutTests
-swift test --filter HTTPEngineDeleteTests
-swift test --filter HTTPEngineHeaderTests
-swift test --filter HTTPEngineDefaultHeaderTests
-swift test --filter HTTPEngineMultipartTests
-swift test --filter HTTPEngineCancellationTests
+swift test --filter HTTPClientGetTests
+swift test --filter HTTPClientPostTests
+swift test --filter HTTPClientPutTests
+swift test --filter HTTPClientDeleteTests
+swift test --filter HTTPClientHeaderTests
+swift test --filter HTTPClientDefaultHeaderTests
+swift test --filter HTTPClientMultipartTests
+swift test --filter HTTPClientCancellationTests
 swift test --filter MultipartEncoderTests
 ```
 
 **Expected**: All test suites report zero failures. This is SC-003.
 
 > **Note**: Two tests are migrated (not removed) as part of this feature:
-> - `HTTPEngineGetTests.configuratorMutatesRequestBeforeDispatch` → renamed and
->   migrated to use `HTTPEngine(session: session, configuration: HTTPEngine.Configuration(timeoutInterval: 42))`.
-> - `HTTPEnginePostTests.configuratorIsInvokedForPostRequests` → renamed and
+> - `HTTPClientGetTests.configuratorMutatesRequestBeforeDispatch` → renamed and
+>   migrated to use `HTTPClient(session: session, configuration: HTTPClient.Configuration(timeoutInterval: 42))`.
+> - `HTTPClientPostTests.configuratorIsInvokedForPostRequests` → renamed and
 >   migrated to use `headers: ["X-Injected": "injected-value"]`.
 > All other tests require zero modifications.
 
@@ -95,7 +95,7 @@ swift test --filter MultipartEncoderTests
 
 ## User Story 2 — Custom Engine-Level Configuration (P2)
 
-**Goal**: Verify that each supported `HTTPEngine.Configuration` property is applied
+**Goal**: Verify that each supported `HTTPClient.Configuration` property is applied
 to the assembled `URLRequest` when an engine is initialised with a non-default
 configuration.
 
@@ -169,7 +169,7 @@ _ = try await engine.get(url)
 
 ```swift
 // Test: multiplePropertiesAllAppliedSimultaneously
-let config = HTTPEngine.Configuration(
+let config = HTTPClient.Configuration(
     timeoutInterval: 10.0,
     cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
     allowsCellularAccess: false
@@ -190,11 +190,11 @@ Run the equivalent of Scenario 2a against GET, POST (body), POST (multipart), PU
 and DELETE:
 
 ```bash
-swift test --filter HTTPEngineConfigurationTests/configurationApplied
+swift test --filter HTTPClientConfigurationTests/configurationApplied
 ```
 
 **Expected**: All five method-specific tests pass, confirming that
-`HTTPEngine.Configuration` is applied uniformly across all HTTP methods (FR-004, FR-005).
+`HTTPClient.Configuration` is applied uniformly across all HTTP methods (FR-004, FR-005).
 
 ---
 
@@ -225,7 +225,7 @@ let timeoutB = mock.capturedRequest?.timeoutInterval   // 999.0 — same engine
 
 ```swift
 // Test: configurationValueNotMutatedByRequestCall
-let sharedConfig = HTTPEngine.Configuration(timeoutInterval: 30.0)
+let sharedConfig = HTTPClient.Configuration(timeoutInterval: 30.0)
 let (engine, mock) = makeEngine(configuration: sharedConfig)
 _ = try await engine.get(url)
 _ = try await engine.post(url)
@@ -242,11 +242,11 @@ _ = try await engine.post(url)
 // Test: concurrentRequestsCarryOwnConfiguration
 // Two independent mock pairs — each engine has its own session and config
 let (sessionA, mockA) = MockURLProtocol.makePair()
-let engineA = HTTPEngine(session: sessionA, configuration: .init(timeoutInterval: 10.0))
+let engineA = HTTPClient(session: sessionA, configuration: .init(timeoutInterval: 10.0))
 mockA.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
 let (sessionB, mockB) = MockURLProtocol.makePair()
-let engineB = HTTPEngine(session: sessionB)   // default config
+let engineB = HTTPClient(session: sessionB)   // default config
 mockB.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
 async let responseA = engineA.get(url)
@@ -263,14 +263,14 @@ cross-contamination between the concurrent calls (SC-004).
 
 ## User Story 4 — Configuration Does Not Override Engine-Managed Properties (P4)
 
-**Goal**: Verify that `HTTPEngine.Configuration` has no effect on the HTTP method,
+**Goal**: Verify that `HTTPClient.Configuration` has no effect on the HTTP method,
 URL, HTTP body, or caller-supplied headers.
 
 ### Scenario 4a — HTTP method is unaffected by configuration
 
 ```swift
 // Test: configurationDoesNotOverrideHTTPMethod
-let config = HTTPEngine.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
+let config = HTTPClient.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
 let (engine, mock) = makeEngine(configuration: config)
 _ = try await engine.get(url)
 #expect(mock.capturedRequest?.httpMethod == "GET")
@@ -334,8 +334,8 @@ swift test
 
 # Quality Gate 3 — no force-unwraps introduced in Sources/
 grep -r "!\." Sources/ --include="*.swift" | grep -v "// "
-# Expected: no new occurrences in Sources/HTTPLib/RequestConfiguration.swift
-#           or in modified sections of HTTPEngine.swift / RequestBuilder.swift
+# Expected: no new occurrences in Sources/HTTPLib/HTTPClient.Configuration.swift
+#           or in modified sections of HTTPClient.swift / RequestBuilder.swift
 ```
 
 ---

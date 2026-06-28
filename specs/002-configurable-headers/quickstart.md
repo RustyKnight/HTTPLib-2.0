@@ -43,7 +43,7 @@ before tasks can be marked done.
 headers on GET, POST, PUT, DELETE, and multipart POST requests.
 
 ```bash
-swift test --filter HTTPEngineDefaultHeaderTests
+swift test --filter HTTPClientDefaultHeaderTests
 ```
 
 Key assertions made by the test suite (verified via `MockURLProtocol.capturedRequest`):
@@ -55,7 +55,7 @@ Key assertions made by the test suite (verified via `MockURLProtocol.capturedReq
 | PUT with same default | Same assertion on the PUT captured request |
 | DELETE with same default | Same assertion on the DELETE captured request |
 | Engine with `defaultHeaders: [:]` | No unexpected headers beyond library-managed ones |
-| Engine with no `defaultHeaders` arg | Identical to a pre-feature `HTTPEngine()` instance |
+| Engine with no `defaultHeaders` arg | Identical to a pre-feature `HTTPClient()` instance |
 
 **Expected outcome**: All six scenarios pass with zero failures.
 
@@ -67,7 +67,7 @@ Key assertions made by the test suite (verified via `MockURLProtocol.capturedReq
 headers with non-overlapping keys, both sets appear in the outbound request.
 
 ```bash
-swift test --filter HTTPEngineDefaultHeaderTests
+swift test --filter HTTPClientDefaultHeaderTests
 ```
 
 Key assertions:
@@ -89,7 +89,7 @@ default header, the per-request value wins for that call; the stored default is
 unaffected afterward.
 
 ```bash
-swift test --filter HTTPEngineDefaultHeaderTests
+swift test --filter HTTPClientDefaultHeaderTests
 ```
 
 Key assertions:
@@ -108,7 +108,7 @@ between calls (verified by the second assertion above using the same engine inst
 ### Edge Cases
 
 ```bash
-swift test --filter HTTPEngineDefaultHeaderTests
+swift test --filter HTTPClientDefaultHeaderTests
 ```
 
 | Edge case | How to verify |
@@ -124,13 +124,13 @@ swift test --filter HTTPEngineDefaultHeaderTests
 Run the full Feature 001 test suite to confirm no existing behaviour regressed:
 
 ```bash
-swift test --filter HTTPEngineGetTests
-swift test --filter HTTPEnginePostTests
-swift test --filter HTTPEnginePutTests
-swift test --filter HTTPEngineDeleteTests
-swift test --filter HTTPEngineHeaderTests
-swift test --filter HTTPEngineMultipartTests
-swift test --filter HTTPEngineCancellationTests
+swift test --filter HTTPClientGetTests
+swift test --filter HTTPClientPostTests
+swift test --filter HTTPClientPutTests
+swift test --filter HTTPClientDeleteTests
+swift test --filter HTTPClientHeaderTests
+swift test --filter HTTPClientMultipartTests
+swift test --filter HTTPClientCancellationTests
 swift test --filter MultipartEncoderTests
 ```
 
@@ -160,7 +160,7 @@ Expected outbound request headers:
 | `X-Request` | `r` | Per-request (tier 2) |
 | `X-Config` | `configurator` | Configurator (tier 4) |
 
-This scenario is covered by `HTTPEngineDefaultHeaderTests` and verifies all four
+This scenario is covered by `HTTPClientDefaultHeaderTests` and verifies all four
 tiers interact correctly in a single request.
 
 ---

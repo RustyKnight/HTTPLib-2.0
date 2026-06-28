@@ -1,6 +1,6 @@
 # HTTP Library
 
-Build a simple HTTP library which covers all the major methods of the protocol called `HTTPEngine`.
+Build a simple HTTP library which covers all the major methods of the protocol called `HTTPClient`.
 
 The intention is to provide a simple, re-usable HTTP implementation.
 

@@ -4,7 +4,7 @@
 
 This feature is a small, additive change to an already-implemented library. No
 external unknowns require network research. All decisions below are derived from
-the existing codebase (`HTTPEngine.swift`, `RequestBuilder.swift`), Feature 001
+the existing codebase (`HTTPClient.swift`, `RequestBuilder.swift`), Feature 001
 design artifacts, and the requirements in `spec.md`. No NEEDS CLARIFICATION items
 remain; `/speckit.tasks` generation may proceed.
 
@@ -32,7 +32,7 @@ request headers.
 
 ## Decision 2 — Internal storage normalises nil to empty dictionary
 
-**Decision**: `HTTPEngine` stores `let defaultHeaders: [String: String]` (not
+**Decision**: `HTTPClient` stores `let defaultHeaders: [String: String]` (not
 optional). The init parameter `defaultHeaders: [String: String]? = nil` is
 normalised at construction: `self.defaultHeaders = defaultHeaders ?? [:]`.
 
@@ -41,7 +41,7 @@ unwrapping on every request dispatch and makes the "no default headers" path
 identical at runtime to the "empty dict" path (FR-001). An empty dictionary
 costs one heap allocation at init time and negligible dispatch overhead. Keeping the
 init parameter optional preserves the progressive-disclosure API (Constitution III):
-the existing `HTTPEngine()` call site compiles without change.
+the existing `HTTPClient()` call site compiles without change.
 
 **Alternatives considered**: Store as `[String: String]?` and guard-unwrap on each
 dispatch — adds avoidable conditional complexity with no benefit; the stored-empty-
@@ -93,9 +93,9 @@ keys — adds a new public type, which FR-006 prohibits.
 
 ---
 
-## Decision 5 — Multipart inline path in `HTTPEngine` also updated
+## Decision 5 — Multipart inline path in `HTTPClient` also updated
 
-**Decision**: The multipart POST path in `HTTPEngine.post(_:formItems:headers:)` uses
+**Decision**: The multipart POST path in `HTTPClient.post(_:formItems:headers:)` uses
 an inline `URLRequest` assembly block (not routed through `RequestBuilder`). This
 block must also be updated to apply default headers in the same four-step order.
 
@@ -129,13 +129,13 @@ choice.
 
 ## Decision 7 — `[String: String]` is `Sendable`; struct synthesis unchanged
 
-**Decision**: Adding `let defaultHeaders: [String: String]` to `HTTPEngine` requires
+**Decision**: Adding `let defaultHeaders: [String: String]` to `HTTPClient` requires
 no changes to `Sendable` conformance. The struct continues to synthesise `Sendable`
 automatically.
 
 **Rationale**: `Swift.Dictionary` is `Sendable` when both `Key` and `Value` conform
 to `Sendable`. `String` conforms to `Sendable`. Therefore `[String: String]` is
-`Sendable`, and the stored `let` property does not break `HTTPEngine`'s synthesised
+`Sendable`, and the stored `let` property does not break `HTTPClient`'s synthesised
 conformance (Constitution V; A-04 — concurrent use remains safe because the stored
 value is fixed at init and never mutated).
 
@@ -152,6 +152,6 @@ not a choice.
 | Internal storage type | `[String: String]` (non-optional) — nil normalised to `[:]` at init |
 | Merge step order | 4-step: defaults → per-request → library Content-Type → configurator |
 | Case-insensitive conflict detection | Delegated to `URLRequest.setValue` (Foundation contract) |
-| Multipart path coverage | Inline assembly in `HTTPEngine.post(_:formItems:headers:)` updated separately |
+| Multipart path coverage | Inline assembly in `HTTPClient.post(_:formItems:headers:)` updated separately |
 | New public types | None (FR-006 explicit prohibition) |
 | `Sendable` impact | None — `[String: String]` is `Sendable`; struct synthesis unchanged |

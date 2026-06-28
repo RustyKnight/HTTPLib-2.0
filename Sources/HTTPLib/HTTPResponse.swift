@@ -5,7 +5,7 @@ public struct HTTPResponse: Sendable {
     public let statusCode: Int
     public let body: Data?
 
-    // Only HTTPEngine constructs HTTPResponse values inside the module, never a caller.
+    // Only HTTPClient constructs HTTPResponse values inside the module, never a caller.
     init(statusCode: Int, body: Data?) {
         self.statusCode = statusCode
         self.body = body

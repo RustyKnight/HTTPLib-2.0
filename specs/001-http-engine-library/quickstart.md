@@ -1,8 +1,8 @@
-# Quickstart Validation Guide: HTTPEngine Library
+# Quickstart Validation Guide: HTTPClient Library
 
 **Feature**: `001-http-engine-library` | **Date**: 2026-06-28 | **Phase 1**
 
-This guide describes how to validate that the `HTTPEngine` library feature has been
+This guide describes how to validate that the `HTTPClient` library feature has been
 implemented correctly end-to-end. It is intended to be used after implementation is
 complete (once `tasks.md` has been executed) to confirm each user story passes its
 acceptance criteria.
@@ -43,17 +43,17 @@ Constitution I. All warnings must be resolved before tasks can be marked done.
 URL-only call and return the stubbed status code.
 
 ```bash
-swift test --filter HTTPEngineGetTests
-swift test --filter HTTPEnginePostTests
-swift test --filter HTTPEnginePutTests
-swift test --filter HTTPEngineDeleteTests
+swift test --filter HTTPClientGetTests
+swift test --filter HTTPClientPostTests
+swift test --filter HTTPClientPutTests
+swift test --filter HTTPClientDeleteTests
 ```
 
 **Expected outcomes**:
 - `engine.get(url)` returns an `HTTPResponse` with `statusCode` equal to the value
   `MockURLProtocol` was configured to return.
 - `engine.post(url)` / `put(url)` / `delete(url)` (no body) behave identically.
-- An unreachable host or network-level failure produces `HTTPEngineError.networkError`,
+- An unreachable host or network-level failure produces `HTTPClientError.networkError`,
   not a raw system error.
 - A server response with status `404` is returned in `HTTPResponse.statusCode`,
   **not** thrown as an error.
@@ -66,8 +66,8 @@ swift test --filter HTTPEngineDeleteTests
 correct payload and `Content-Type` header.
 
 ```bash
-swift test --filter HTTPEnginePostTests
-swift test --filter HTTPEnginePutTests
+swift test --filter HTTPClientPostTests
+swift test --filter HTTPClientPutTests
 ```
 
 **Expected outcomes for each body variant** (verified by inspecting the
@@ -80,7 +80,7 @@ swift test --filter HTTPEnginePutTests
 | `.json(model)` | Valid JSON representation of `model` | `application/json` |
 
 - A `.json` body for a type that fails encoding (e.g., a custom type with a
-  throwing `encode` implementation) throws `HTTPEngineError.jsonEncodingFailed`
+  throwing `encode` implementation) throws `HTTPClientError.jsonEncodingFailed`
   **before** `MockURLProtocol` receives any request.
 
 ---
@@ -91,7 +91,7 @@ swift test --filter HTTPEnginePutTests
 take precedence on conflict.
 
 ```bash
-swift test --filter HTTPEngineHeaderTests
+swift test --filter HTTPClientHeaderTests
 ```
 
 **Expected outcomes**:
@@ -110,16 +110,16 @@ swift test --filter HTTPEngineHeaderTests
 callback can mutate the request before dispatch.
 
 ```bash
-swift test --filter HTTPEngineGetTests
-swift test --filter HTTPEnginePostTests
+swift test --filter HTTPClientGetTests
+swift test --filter HTTPClientPostTests
 ```
 
 **Expected outcomes**:
-- `HTTPEngine(session: customSession)` routes requests through `customSession`
+- `HTTPClient(session: customSession)` routes requests through `customSession`
   (verified by registering `MockURLProtocol` on `customSession`'s configuration).
-- `HTTPEngine()` (no session argument) uses a default session that also performs
+- `HTTPClient()` (no session argument) uses a default session that also performs
   the request without error.
-- `HTTPEngine(configurator: { $0.timeoutInterval = 5 })` results in
+- `HTTPClient(configurator: { $0.timeoutInterval = 5 })` results in
   `URLRequest.timeoutInterval == 5` in the request `MockURLProtocol` receives.
 - A nil `configurator` produces no mutation.
 
@@ -132,7 +132,7 @@ well-formed RFC 2046 body; validation errors fire before network activity.
 
 ```bash
 swift test --filter MultipartEncoderTests
-swift test --filter HTTPEngineMultipartTests
+swift test --filter HTTPClientMultipartTests
 ```
 
 **Expected outcomes — `MultipartEncoderTests`** (no URLSession; encoder tested directly):
@@ -147,12 +147,12 @@ swift test --filter HTTPEngineMultipartTests
 - An explicit `mimeType` on any item sets `Content-Type: <mimeType>` for that part;
   omitting `mimeType` uses the default (`application/octet-stream` or `text/plain`).
 
-**Expected outcomes — `HTTPEngineMultipartTests`** (full engine + mock session):
+**Expected outcomes — `HTTPClientMultipartTests`** (full engine + mock session):
 
-- `engine.post(url, formItems: [])` throws `HTTPEngineError.emptyFormItems`
+- `engine.post(url, formItems: [])` throws `HTTPClientError.emptyFormItems`
   **before** `MockURLProtocol` receives any request.
 - `engine.post(url, formItems: [.property(name: "", value: "x")])` throws
-  `HTTPEngineError.emptyFormItemName`.
+  `HTTPClientError.emptyFormItemName`.
 - A valid multipart call results in a request at `MockURLProtocol` with
   `Content-Type: multipart/form-data; boundary=----Boundary-<UUID>`.
 
@@ -164,7 +164,7 @@ swift test --filter HTTPEngineMultipartTests
 to the caller.
 
 ```bash
-swift test --filter HTTPEngineCancellationTests
+swift test --filter HTTPClientCancellationTests
 ```
 
 **Expected outcomes**:
@@ -172,7 +172,7 @@ swift test --filter HTTPEngineCancellationTests
   `CancellationError` at the `checkCancellation()` call (before network activity).
 - A `Task` cancelled while `MockURLProtocol` holds a response in a suspended state
   (simulating an in-flight request) results in `CancellationError` reaching the caller.
-- The thrown error is a raw `CancellationError`, **not** `HTTPEngineError.networkError`.
+- The thrown error is a raw `CancellationError`, **not** `HTTPClientError.networkError`.
 
 ---
 
@@ -183,7 +183,7 @@ swift test --filter HTTPEngineCancellationTests
 | All tests green | Feature is complete and correct |
 | `swift build` warnings | Constitution I violation — must be resolved |
 | Any test failure | Story or acceptance criterion not yet implemented |
-| `CancellationError` wrapped in `HTTPEngineError` | Concurrency contract broken (FR-007) |
+| `CancellationError` wrapped in `HTTPClientError` | Concurrency contract broken (FR-007) |
 | `networkError` thrown for a 404 response | Non-2xx handling broken (FR-008) |
 | `Content-Type` set for `.binary` body | Library is over-managing headers |
 | Missing `Content-Type` for `.json` body | Body variant handling incomplete |

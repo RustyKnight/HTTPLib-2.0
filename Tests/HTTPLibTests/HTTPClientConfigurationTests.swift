@@ -3,21 +3,21 @@ import Foundation
 @testable import HTTPLib
 
 // US1–US4 acceptance tests for Feature 003: Request Configuration Struct
-// Engine-level configuration is provided at HTTPEngine initialization.
-@Suite("HTTPEngine Configuration") struct HTTPEngineConfigurationTests {
+// Engine-level configuration is provided at HTTPClient initialization.
+@Suite("HTTPClient Configuration") struct HTTPClientConfigurationTests {
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine(configuration: HTTPEngine.Configuration = .default) -> (HTTPEngine, MockURLProtocol.MockContext) {
+    private func makeEngine(configuration: HTTPClient.Configuration = .default) -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPEngine(session: session, configuration: configuration), mock)
+        return (HTTPClient(session: session, configuration: configuration), mock)
     }
 
     // MARK: - User Story 1: Zero-Config Default Behaviour
 
     // US1-AC-2: Built-in default value properties match URLRequest platform defaults
     @Test func defaultConfigurationMatchesPlatformDefaults() {
-        let config = HTTPEngine.Configuration.default
+        let config = HTTPClient.Configuration.default
         #expect(config.timeoutInterval == 60.0)
         #expect(config.cachePolicy == .useProtocolCachePolicy)
         #expect(config.allowsCellularAccess == true)
@@ -109,7 +109,7 @@ import Foundation
 
     // US2-AC-7: Multiple non-default properties are all applied simultaneously
     @Test func multiplePropertiesAllAppliedSimultaneously() async throws {
-        let config = HTTPEngine.Configuration(
+        let config = HTTPClient.Configuration(
             timeoutInterval: 10.0,
             cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
             allowsCellularAccess: false
@@ -174,7 +174,7 @@ import Foundation
 
     // US3-AC-2: Configuration value is not mutated by request calls (value semantics)
     @Test func configurationValueNotMutatedByRequestCall() async throws {
-        let sharedConfig = HTTPEngine.Configuration(timeoutInterval: 30.0)
+        let sharedConfig = HTTPClient.Configuration(timeoutInterval: 30.0)
         let (engine, mock) = makeEngine(configuration: sharedConfig)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
@@ -188,11 +188,11 @@ import Foundation
     // US3-AC-3: Concurrent requests from different engines keep engine-local configuration
     @Test func concurrentRequestsCarryOwnConfiguration() async throws {
         let (sessionA, mockA) = MockURLProtocol.makePair()
-        let engineA = HTTPEngine(session: sessionA, configuration: .init(timeoutInterval: 10.0))
+        let engineA = HTTPClient(session: sessionA, configuration: .init(timeoutInterval: 10.0))
         mockA.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
         let (sessionB, mockB) = MockURLProtocol.makePair()
-        let engineB = HTTPEngine(session: sessionB)
+        let engineB = HTTPClient(session: sessionB)
         mockB.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
         async let responseA = engineA.get(url)
@@ -207,7 +207,7 @@ import Foundation
 
     // US4-AC-1: HTTP method is set by the engine; configuration cannot override it
     @Test func configurationDoesNotOverrideHTTPMethod() async throws {
-        let config = HTTPEngine.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
+        let config = HTTPClient.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
         let (engine, mock) = makeEngine(configuration: config)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 

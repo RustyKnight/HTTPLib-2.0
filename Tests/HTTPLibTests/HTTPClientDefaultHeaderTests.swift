@@ -2,16 +2,16 @@ import Testing
 import Foundation
 @testable import HTTPLib
 
-@Suite("HTTPEngine Default Headers") struct HTTPEngineDefaultHeaderTests {
+@Suite("HTTPClient Default Headers") struct HTTPClientDefaultHeaderTests {
 
     private let url = URL(string: "https://example.com")!
 
     // Shared helper: builds an engine + mock session pair with optional default headers.
     private func makeEngine(
         defaultHeaders: [String: String]? = nil
-    ) -> (HTTPEngine, MockURLProtocol.MockContext) {
+    ) -> (HTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPEngine(session: session, defaultHeaders: defaultHeaders)
+        let engine = HTTPClient(session: session, defaultHeaders: defaultHeaders)
         return (engine, mock)
     }
 

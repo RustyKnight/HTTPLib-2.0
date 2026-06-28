@@ -69,7 +69,7 @@ import Foundation
     // MARK: - Validation
 
     @Test func emptyItemNameThrows() {
-        #expect(throws: HTTPEngineError.emptyFormItemName) {
+        #expect(throws: HTTPClientError.emptyFormItemName) {
             try MultipartEncoder.encode([FormItem.property(name: "", value: "x")])
         }
     }

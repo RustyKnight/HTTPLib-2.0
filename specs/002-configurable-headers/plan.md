@@ -7,14 +7,14 @@
 
 ## Summary
 
-Add an optional `defaultHeaders: [String: String]?` parameter to `HTTPEngine.init`.
+Add an optional `defaultHeaders: [String: String]?` parameter to `HTTPClient.init`.
 The value is stored immutably as `[String: String]` and merged into every outbound
 request automatically, before per-request headers and before library-managed headers.
 Merge precedence (lowest → highest): instance default headers → per-request caller
 headers → library-internal required headers (e.g., `Content-Type` for body encoding)
 → `RequestConfigurator` callback. No public method signatures change; the feature is
 purely additive and fully backward-compatible (opt-in via an optional init parameter
-with a `nil` default). A new test file — `HTTPEngineDefaultHeaderTests.swift` — covers
+with a `nil` default). A new test file — `HTTPClientDefaultHeaderTests.swift` — covers
 all acceptance criteria.
 
 ## Technical Context
@@ -44,7 +44,7 @@ third-party deps; all existing public HTTP method signatures MUST remain unchang
 (FR-008); the new `defaultHeaders` parameter MUST use the same type as per-request
 headers (`[String: String]?`), per FR-006 and A-05.
 
-**Scale/Scope**: Minimal — one new `let` stored property on `HTTPEngine`, one new init
+**Scale/Scope**: Minimal — one new `let` stored property on `HTTPClient`, one new init
 parameter, updated header-merge logic in `RequestBuilder` and the multipart inline
 path, one new test file. No new public types, no new source files in `Sources/`.
 
@@ -56,8 +56,8 @@ path, one new test file. No new public types, no new source files in `Sources/`.
 |---|-----------|--------|-------|
 | I | Code Quality — explicit types, zero warnings, no force-unwraps, YAGNI | ✅ PASS | `[String: String]` is fully explicit; `let defaultHeaders` synthesises `Sendable` on the struct automatically; `!` is not introduced; this is the simplest correct implementation (one stored property + merge step). |
 | II | Testing Standards — TDD, XCTest, async test bodies, `swift test` runnable | ⚠️ JUSTIFIED DEVIATION | Swift Testing used, as established in Feature 001 (same justification — plan notes preference, existing scaffold). See Complexity Tracking. |
-| III | API UX — progressive disclosure, URL-only minimum, typed throws, Swifty naming | ✅ PASS | `defaultHeaders` is an optional parameter with `nil` default; `HTTPEngine()` still compiles unchanged; all existing call sites are unaffected (FR-008). |
-| IV | Performance & Reliability — async/await, cancellation, Sendable, no silent errors | ✅ PASS | No new async paths introduced; `[String: String]` is inherently `Sendable`; dictionary merge cannot fail silently; `HTTPEngine` struct `Sendable` synthesis remains valid. |
+| III | API UX — progressive disclosure, URL-only minimum, typed throws, Swifty naming | ✅ PASS | `defaultHeaders` is an optional parameter with `nil` default; `HTTPClient()` still compiles unchanged; all existing call sites are unaffected (FR-008). |
+| IV | Performance & Reliability — async/await, cancellation, Sendable, no silent errors | ✅ PASS | No new async paths introduced; `[String: String]` is inherently `Sendable`; dictionary merge cannot fail silently; `HTTPClient` struct `Sendable` synthesis remains valid. |
 | V | Modern Standards — Swift 6.0, macOS 14+, URLSession only, SPM only | ✅ PASS | No platform or toolchain changes; purely additive to the existing Swift 6 codebase. |
 
 **Gate result**: ✅ PROCEED — one justified deviation documented in Complexity Tracking.
@@ -84,32 +84,32 @@ specs/002-configurable-headers/
 
 ```text
 Sources/HTTPLib/
-├── HTTPEngine.swift           # Updated: new defaultHeaders stored property + init param
+├── HTTPClient.swift           # Updated: new defaultHeaders stored property + init param
 ├── HTTPResponse.swift         # Unchanged
 ├── RequestBody.swift          # Unchanged
 ├── FormItem.swift             # Unchanged
-├── HTTPEngineError.swift      # Unchanged
+├── HTTPClientError.swift      # Unchanged
 └── Internal/
     ├── RequestBuilder.swift   # Updated: new defaultHeaders parameter; 4-step merge order
     └── MultipartEncoder.swift # Unchanged
 
 Tests/HTTPLibTests/
-├── HTTPEngineDefaultHeaderTests.swift   # NEW: all US1/US2/US3 acceptance criteria
-├── HTTPEngineGetTests.swift             # Unchanged (regression guard)
-├── HTTPEnginePostTests.swift            # Unchanged (regression guard)
-├── HTTPEnginePutTests.swift             # Unchanged (regression guard)
-├── HTTPEngineDeleteTests.swift          # Unchanged (regression guard)
-├── HTTPEngineHeaderTests.swift          # Unchanged (per-request headers — regression guard)
-├── HTTPEngineMultipartTests.swift       # Unchanged (regression guard)
-├── HTTPEngineCancellationTests.swift    # Unchanged (regression guard)
+├── HTTPClientDefaultHeaderTests.swift   # NEW: all US1/US2/US3 acceptance criteria
+├── HTTPClientGetTests.swift             # Unchanged (regression guard)
+├── HTTPClientPostTests.swift            # Unchanged (regression guard)
+├── HTTPClientPutTests.swift             # Unchanged (regression guard)
+├── HTTPClientDeleteTests.swift          # Unchanged (regression guard)
+├── HTTPClientHeaderTests.swift          # Unchanged (per-request headers — regression guard)
+├── HTTPClientMultipartTests.swift       # Unchanged (regression guard)
+├── HTTPClientCancellationTests.swift    # Unchanged (regression guard)
 ├── MultipartEncoderTests.swift          # Unchanged
 └── Helpers/
     └── MockURLProtocol.swift            # Unchanged — reused as-is
 ```
 
 **Structure Decision**: Standard Swift Package Manager layout unchanged from Feature 001.
-All changes are confined to `HTTPEngine.swift`, `RequestBuilder.swift`, and the single
-new test file `HTTPEngineDefaultHeaderTests.swift`. No new source files are added to
+All changes are confined to `HTTPClient.swift`, `RequestBuilder.swift`, and the single
+new test file `HTTPClientDefaultHeaderTests.swift`. No new source files are added to
 `Sources/`; no new public types are introduced (FR-006).
 
 ## Complexity Tracking

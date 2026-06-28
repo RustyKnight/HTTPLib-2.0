@@ -1,1 +1,1 @@
-// Superseded by HTTPEngine — see Sources/HTTPLib/HTTPEngine.swift
+// Superseded by HTTPClient — see Sources/HTTPLib/HTTPClient.swift

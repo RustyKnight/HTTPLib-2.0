@@ -2,7 +2,7 @@ import Foundation
 
 // FR-001, FR-004, FR-009: primary entry point; async operations; injectable session
 // Feature 003: RequestConfigurator typealias and configurator stored property removed (FR-008, breaking change A-09)
-public struct HTTPEngine: Sendable {
+public struct HTTPClient: Sendable {
 
     public let session: URLSession
     public let configuration: Configuration
@@ -47,14 +47,14 @@ public struct HTTPEngine: Sendable {
             // FR-010: routes through injected session
             (data, urlResponse) = try await self.session.data(for: request)
         } catch is CancellationError {
-            // FR-007: CancellationError propagates directly — never wrapped in HTTPEngineError
+            // FR-007: CancellationError propagates directly — never wrapped in HTTPClientError
             throw CancellationError()
         } catch {
-            throw HTTPEngineError.networkError(error)
+            throw HTTPClientError.networkError(error)
         }
 
         guard let httpResponse = urlResponse as? HTTPURLResponse else {
-            throw HTTPEngineError.networkError(URLError(.badServerResponse))
+            throw HTTPClientError.networkError(URLError(.badServerResponse))
         }
 
         // FR-008: non-2xx status codes are returned to the caller, not thrown
@@ -109,12 +109,12 @@ public struct HTTPEngine: Sendable {
 
         // FR-020: validate non-empty formItems before encoding
         guard !formItems.isEmpty else {
-            throw HTTPEngineError.emptyFormItems
+            throw HTTPClientError.emptyFormItems
         }
 
         // FR-021: validate all item names before encoding
         guard formItems.allSatisfy({ !$0.name.isEmpty }) else {
-            throw HTTPEngineError.emptyFormItemName
+            throw HTTPClientError.emptyFormItemName
         }
 
         // FR-018: encode as RFC 2046 multipart/form-data
@@ -124,7 +124,7 @@ public struct HTTPEngine: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.post.rawValue
 
-        // Step 1 — apply RequestConfiguration transport properties (Feature 003, FR-005, A-07)
+        // Step 1 — apply HTTPClient.Configuration transport properties (Feature 003, FR-005, A-07)
         request.timeoutInterval = configuration.timeoutInterval
         request.cachePolicy = configuration.cachePolicy
         request.allowsCellularAccess = configuration.allowsCellularAccess
@@ -149,16 +149,16 @@ public struct HTTPEngine: Sendable {
         do {
             let (data, urlResponse) = try await self.session.data(for: request)
             guard let httpResponse = urlResponse as? HTTPURLResponse else {
-                throw HTTPEngineError.networkError(URLError(.badServerResponse))
+                throw HTTPClientError.networkError(URLError(.badServerResponse))
             }
             // FR-008: non-2xx returned, not thrown
             return HTTPResponse(statusCode: httpResponse.statusCode, body: data.isEmpty ? nil : data)
         } catch is CancellationError {
             throw CancellationError()  // FR-007: CancellationError propagates directly
-        } catch let e as HTTPEngineError {
-            throw e  // HTTPEngineError from MultipartEncoder propagates directly
+        } catch let e as HTTPClientError {
+            throw e  // HTTPClientError from MultipartEncoder propagates directly
         } catch {
-            throw HTTPEngineError.networkError(error)
+            throw HTTPClientError.networkError(error)
         }
     }
 

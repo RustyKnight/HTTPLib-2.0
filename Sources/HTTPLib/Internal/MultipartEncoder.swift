@@ -8,8 +8,8 @@ internal enum MultipartEncoder {
     ///
     /// - Returns: A tuple of the encoded body `Data` and the complete `Content-Type` header value
     ///            (e.g. `"multipart/form-data; boundary=----Boundary-XXXX"`).
-    /// - Throws: `HTTPEngineError.emptyFormItemName` if any item has an empty `name`.
-    ///           `HTTPEngineError.fileReadFailed` if a `.file` item cannot be read.
+    /// - Throws: `HTTPClientError.emptyFormItemName` if any item has an empty `name`.
+    ///           `HTTPClientError.fileReadFailed` if a `.file` item cannot be read.
     static func encode(_ items: [FormItem]) throws -> (body: Data, contentType: String) {
         // A-09: boundary is UUID-derived, unique per call
         let boundary = "----Boundary-\(UUID().uuidString)"
@@ -23,9 +23,9 @@ internal enum MultipartEncoder {
         }
 
         for item in items {
-            // Defence-in-depth guard — HTTPEngine validates first (FR-021)
+            // Defence-in-depth guard — HTTPClient validates first (FR-021)
             guard !item.name.isEmpty else {
-                throw HTTPEngineError.emptyFormItemName
+                throw HTTPClientError.emptyFormItemName
             }
 
             // Opening boundary (RFC 2046 §4.1: CRLF line endings mandatory)
@@ -48,7 +48,7 @@ internal enum MultipartEncoder {
                     let fileData = try Data(contentsOf: url)
                     bodyData.append(fileData)
                 } catch {
-                    throw HTTPEngineError.fileReadFailed(url: url, underlying: error)
+                    throw HTTPClientError.fileReadFailed(url: url, underlying: error)
                 }
                 append("\r\n")
 
