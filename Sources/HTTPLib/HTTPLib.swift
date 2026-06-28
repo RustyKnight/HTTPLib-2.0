@@ -1,3 +1,1 @@
-public struct HTTPLib {
-    public static let version = "1.0.0"
-}
+// Superseded by HTTPEngine — see Sources/HTTPLib/HTTPEngine.swift
