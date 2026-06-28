@@ -5,7 +5,10 @@ import PackageDescription
 let package = Package(
     name: "HTTPClientLib",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .tvOS(.v13),
+        .visionOS(.v1)
     ],
     products: [
         .library(
