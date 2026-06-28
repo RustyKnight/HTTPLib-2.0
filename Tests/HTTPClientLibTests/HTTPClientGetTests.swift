@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import HTTPLib
+@testable import HTTPClientLib
 
 @Suite("HTTPClient GET") struct HTTPClientGetTests {
 

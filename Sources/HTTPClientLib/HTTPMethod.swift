@@ -1,6 +1,6 @@
 //
 //  HTTPMethod.swift
-//  HTTPLib
+//  HTTPClientLib
 //
 //  Created by Shane Whitehead on 28/6/2026.
 //

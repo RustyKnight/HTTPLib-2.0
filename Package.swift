@@ -3,23 +3,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "HTTPLib",
+    name: "HTTPClientLib",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .library(
-            name: "HTTPLib",
-            targets: ["HTTPLib"]
+            name: "HTTPClientLib",
+            targets: ["HTTPClientLib"]
         )
     ],
     targets: [
         .target(
-            name: "HTTPLib"
+            name: "HTTPClientLib"
         ),
         .testTarget(
-            name: "HTTPLibTests",
-            dependencies: ["HTTPLib"]
+            name: "HTTPClientLibTests",
+            dependencies: ["HTTPClientLib"]
         )
     ]
 )

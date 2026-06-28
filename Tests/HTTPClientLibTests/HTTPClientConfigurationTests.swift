@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import HTTPLib
+@testable import HTTPClientLib
 
 // US1–US4 acceptance tests for Feature 003: Request Configuration Struct
 // Engine-level configuration is provided at HTTPClient initialization.

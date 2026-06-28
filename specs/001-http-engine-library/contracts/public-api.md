@@ -12,7 +12,7 @@ per the project constitution's governance policy.
 ## Module
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 ```
 
 ---

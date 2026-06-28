@@ -1,4 +1,4 @@
-# HTTPLib
+# HTTPClientLib
 
 A lightweight Swift HTTP library with async/await support for **GET**, **POST**, **PUT**, and **DELETE**.
 
@@ -32,12 +32,12 @@ This is an experiment with Github SpecKit and Github Copilot.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/<owner>/HTTPLib.git", from: "1.0.0")
+    .package(url: "https://github.com/<owner>/HTTPClientLib.git", from: "1.0.0")
 ],
 targets: [
     .target(
         name: "YourTarget",
-        dependencies: ["HTTPLib"]
+        dependencies: ["HTTPClientLib"]
     )
 ]
 ```
@@ -45,7 +45,7 @@ targets: [
 ## Quick start
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 let engine = HTTPClient()
@@ -60,7 +60,7 @@ if let body = response.body {
 ## Example: default headers + per-request override
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 let engine = HTTPClient(
@@ -83,7 +83,7 @@ let users = try await engine.get(
 ## Example: JSON request body
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 struct CreateUser: Encodable {
@@ -104,7 +104,7 @@ let response = try await engine.post(
 ## Example: request configuration + custom session
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 let sessionConfig = URLSessionConfiguration.default
@@ -128,7 +128,7 @@ let engineWithCustomSession = HTTPClient(
 ## Example: binary request body
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 let engine = HTTPClient()
@@ -143,7 +143,7 @@ let response = try await engine.put(
 ## Example: multipart form-data POST
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 import Foundation
 
 let fileURL = URL(fileURLWithPath: "/tmp/avatar.jpg")
@@ -162,7 +162,7 @@ let response = try await HTTPClient().post(
 ## Error handling
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 
 do {
     _ = try await HTTPClient().get(URL(string: "https://example.com")!)

@@ -57,7 +57,7 @@ All other source and test files are **unchanged** (FR-008, SC-003).
 
 > **TDD — write these tests FIRST and confirm they FAIL before writing any implementation**
 
-- [X] T004 [US1] Create `Tests/HTTPLibTests/HTTPClientDefaultHeaderTests.swift` as a new Swift Testing `@Suite` using `import Testing` and `@testable import HTTPLib`; implement 7 US1 test cases — each constructs an `HTTPClient` with `MockURLProtocol` as the session's `protocolClasses` and asserts on `MockURLProtocol.capturedRequest?.value(forHTTPHeaderField:)` or `allHTTPHeaderFields`:
+- [X] T004 [US1] Create `Tests/HTTPLibTests/HTTPClientDefaultHeaderTests.swift` as a new Swift Testing `@Suite` using `import Testing` and `@testable import HTTPClientLib`; implement 7 US1 test cases — each constructs an `HTTPClient` with `MockURLProtocol` as the session's `protocolClasses` and asserts on `MockURLProtocol.capturedRequest?.value(forHTTPHeaderField:)` or `allHTTPHeaderFields`:
   - `defaultHeadersAppliedToGetRequest` — `HTTPClient(defaultHeaders: ["X-API-Key": "abc123"])`, GET request, assert `value(forHTTPHeaderField: "X-API-Key") == "abc123"` (US1-AC-1)
   - `defaultHeadersAppliedToPostRequest` — same engine, POST request, same assertion (US1-AC-2)
   - `defaultHeadersAppliedToPutRequest` — same engine, PUT request, same assertion (US1-AC-2)

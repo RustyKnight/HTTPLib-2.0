@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import HTTPLib
+@testable import HTTPClientLib
 
 @Suite("MultipartEncoder") struct MultipartEncoderTests {
 

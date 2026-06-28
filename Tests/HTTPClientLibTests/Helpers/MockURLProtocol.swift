@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HTTPLib
+@testable import HTTPClientLib
 
 final class MockURLProtocol: URLProtocol {
 

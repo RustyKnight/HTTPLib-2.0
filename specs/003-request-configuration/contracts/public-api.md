@@ -19,7 +19,7 @@ will not compile. This change MUST be accompanied by a **MAJOR version bump** fr
 ## Module
 
 ```swift
-import HTTPLib
+import HTTPClientLib
 ```
 
 ---
