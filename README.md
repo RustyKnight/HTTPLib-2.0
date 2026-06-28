@@ -12,12 +12,12 @@ This is an experiment with Github SpecKit and Github Copilot.
 
 - Async API (`async throws`) built on `URLSession`
 - Engine-level default headers (applied to every request)
+- Engine-level request transport configuration via `HTTPEngine.Configuration`
 - Per-request headers
-- Optional request configurator for low-level `URLRequest` customization
 - Optional custom `URLSession` injection (great for testing)
 - Request bodies for `POST` / `PUT` / `DELETE`:
   - text (`.text`)
-  - raw data (`.binary`)
+  - raw data (`.binary(Data, contentType:)`)
   - JSON (`.json(any Encodable)`)
 - Multipart form-data upload support for `POST`
 - Typed errors via `HTTPEngineError`
@@ -101,19 +101,43 @@ let response = try await engine.post(
 )
 ```
 
-## Example: request configurator + custom session
+## Example: request configuration + custom session
 
 ```swift
 import HTTPLib
 import Foundation
 
-let config = URLSessionConfiguration.default
-let session = URLSession(configuration: config)
+let sessionConfig = URLSessionConfiguration.default
+let requestConfig = HTTPEngine.Configuration(
+    timeoutInterval: 15,
+    cachePolicy: .reloadIgnoringLocalCacheData
+)
 
-let engine = HTTPEngine(session: session) { request in
-    request.timeoutInterval = 15
-    request.cachePolicy = .reloadIgnoringLocalCacheData
-}
+let engine = HTTPEngine(
+    configuration: requestConfig,
+    defaultHeaders: ["Accept": "application/json"]
+)
+
+let customSession = URLSession(configuration: sessionConfig)
+let engineWithCustomSession = HTTPEngine(
+    session: customSession,
+    configuration: requestConfig
+)
+```
+
+## Example: binary request body
+
+```swift
+import HTTPLib
+import Foundation
+
+let engine = HTTPEngine()
+let payload = Data([0x01, 0x02, 0x03])
+
+let response = try await engine.put(
+    URL(string: "https://api.example.com/blob")!,
+    body: .binary(payload, contentType: "application/octet-stream")
+)
 ```
 
 ## Example: multipart form-data POST

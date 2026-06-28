@@ -84,15 +84,12 @@ import Foundation
 
     // MARK: - User Story 4
 
-    // US4-AC-03: Configurator is invoked for POST requests
-    @Test func configuratorIsInvokedForPostRequests() async throws {
+    // US1-AC-1 (Feature 003): per-request headers applied to POST request (migrated from configurator test)
+    @Test func perRequestHeadersAppliedToPostRequest() async throws {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPEngine(
-            session: session,
-            configurator: { $0.addValue("injected-value", forHTTPHeaderField: "X-Injected") }
-        )
+        let engine = HTTPEngine(session: session)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
-        _ = try await engine.post(url)
+        _ = try await engine.post(url, headers: ["X-Injected": "injected-value"])
         #expect(mock.capturedRequest?.value(forHTTPHeaderField: "X-Injected") == "injected-value")
     }
 }

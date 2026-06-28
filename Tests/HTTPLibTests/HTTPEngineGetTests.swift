@@ -52,14 +52,16 @@ import Foundation
         #expect(mock.capturedRequest != nil)
     }
 
-    // US4-AC-03: RequestConfigurator mutates the request before dispatch
-    @Test func configuratorMutatesRequestBeforeDispatch() async throws {
+    // US1-AC-1 (Feature 003): engine-level configuration timeout is applied on get
+    @Test func customTimeoutAppliedViaConfiguration() async throws {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPEngine(session: session, configurator: { $0.timeoutInterval = 42 })
+        let engine = HTTPEngine(
+            session: session,
+            configuration: HTTPEngine.Configuration(timeoutInterval: 42)
+        )
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
         _ = try await engine.get(url)
         #expect(mock.capturedRequest?.timeoutInterval == 42)
     }
 }
-
 
