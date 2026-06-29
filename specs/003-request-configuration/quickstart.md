@@ -6,7 +6,7 @@ This guide documents the runnable validation scenarios that prove Feature 003 wo
 end-to-end. Each scenario maps to one or more acceptance criteria in `spec.md`.
 Use `swift test` from the repository root to execute all scenarios. No real network
 connections are required — all scenarios use `MockURLProtocol`
-(`Tests/HTTPLibTests/Helpers/MockURLProtocol.swift`).
+(`Tests/HTTPClientLibTests/Helpers/MockURLProtocol.swift`).
 
 For type definitions see `data-model.md`. For updated signatures and usage examples
 see `contracts/public-api.md`.
@@ -21,7 +21,7 @@ swift build      # Must succeed with zero warnings (Constitution I, Quality Gate
 swift test       # Must pass with zero failures (Constitution II, Quality Gate)
 ```
 
-The test target `HTTPLibTests` depends on `HTTPLib`. All tests run in-process with
+The test target `HTTPClientLibTests` depends on `HTTPClientLib`. All tests run in-process with
 `MockURLProtocol` intercepting every `URLRequest` before any network call is made.
 
 ---
@@ -40,7 +40,7 @@ unmodified.
 // Suite: HTTPClientConfigurationTests
 // Test:  defaultConfigurationMatchesPlatformDefaults
 
-let config = HTTPClient.Configuration.default
+let config = DefaultHTTPClient.Configuration.default
 // Assert — all six properties match platform baseline
 #expect(config.timeoutInterval == 60.0)
 #expect(config.cachePolicy == .useProtocolCachePolicy)
@@ -59,7 +59,7 @@ let config = HTTPClient.Configuration.default
 // Test: defaultConfigurationIsAppliedWhenNoArgumentSupplied
 
 let (session, mock) = MockURLProtocol.makePair()
-let engine = HTTPClient(session: session)   // ← no configuration: argument
+let engine = DefaultHTTPClient(session: session)   // ← no configuration: argument
 mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 _ = try await engine.get(url)
 let captured = try #require(mock.capturedRequest)
@@ -86,7 +86,7 @@ swift test --filter MultipartEncoderTests
 
 > **Note**: Two tests are migrated (not removed) as part of this feature:
 > - `HTTPClientGetTests.configuratorMutatesRequestBeforeDispatch` → renamed and
->   migrated to use `HTTPClient(session: session, configuration: HTTPClient.Configuration(timeoutInterval: 42))`.
+>   migrated to use `DefaultHTTPClient(session: session, configuration: DefaultHTTPClient.Configuration(timeoutInterval: 42))`.
 > - `HTTPClientPostTests.configuratorIsInvokedForPostRequests` → renamed and
 >   migrated to use `headers: ["X-Injected": "injected-value"]`.
 > All other tests require zero modifications.
@@ -95,7 +95,7 @@ swift test --filter MultipartEncoderTests
 
 ## User Story 2 — Custom Engine-Level Configuration (P2)
 
-**Goal**: Verify that each supported `HTTPClient.Configuration` property is applied
+**Goal**: Verify that each supported `DefaultHTTPClient.Configuration` property is applied
 to the assembled `URLRequest` when an engine is initialised with a non-default
 configuration.
 
@@ -169,7 +169,7 @@ _ = try await engine.get(url)
 
 ```swift
 // Test: multiplePropertiesAllAppliedSimultaneously
-let config = HTTPClient.Configuration(
+let config = DefaultHTTPClient.Configuration(
     timeoutInterval: 10.0,
     cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
     allowsCellularAccess: false
@@ -194,7 +194,7 @@ swift test --filter HTTPClientConfigurationTests/configurationApplied
 ```
 
 **Expected**: All five method-specific tests pass, confirming that
-`HTTPClient.Configuration` is applied uniformly across all HTTP methods (FR-004, FR-005).
+`DefaultHTTPClient.Configuration` is applied uniformly across all HTTP methods (FR-004, FR-005).
 
 ---
 
@@ -225,7 +225,7 @@ let timeoutB = mock.capturedRequest?.timeoutInterval   // 999.0 — same engine
 
 ```swift
 // Test: configurationValueNotMutatedByRequestCall
-let sharedConfig = HTTPClient.Configuration(timeoutInterval: 30.0)
+let sharedConfig = DefaultHTTPClient.Configuration(timeoutInterval: 30.0)
 let (engine, mock) = makeEngine(configuration: sharedConfig)
 _ = try await engine.get(url)
 _ = try await engine.post(url)
@@ -242,11 +242,11 @@ _ = try await engine.post(url)
 // Test: concurrentRequestsCarryOwnConfiguration
 // Two independent mock pairs — each engine has its own session and config
 let (sessionA, mockA) = MockURLProtocol.makePair()
-let engineA = HTTPClient(session: sessionA, configuration: .init(timeoutInterval: 10.0))
+let engineA = DefaultHTTPClient(session: sessionA, configuration: .init(timeoutInterval: 10.0))
 mockA.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
 let (sessionB, mockB) = MockURLProtocol.makePair()
-let engineB = HTTPClient(session: sessionB)   // default config
+let engineB = DefaultHTTPClient(session: sessionB)   // default config
 mockB.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
 
 async let responseA = engineA.get(url)
@@ -263,14 +263,14 @@ cross-contamination between the concurrent calls (SC-004).
 
 ## User Story 4 — Configuration Does Not Override Engine-Managed Properties (P4)
 
-**Goal**: Verify that `HTTPClient.Configuration` has no effect on the HTTP method,
+**Goal**: Verify that `DefaultHTTPClient.Configuration` has no effect on the HTTP method,
 URL, HTTP body, or caller-supplied headers.
 
 ### Scenario 4a — HTTP method is unaffected by configuration
 
 ```swift
 // Test: configurationDoesNotOverrideHTTPMethod
-let config = HTTPClient.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
+let config = DefaultHTTPClient.Configuration(timeoutInterval: 999.0, allowsCellularAccess: false)
 let (engine, mock) = makeEngine(configuration: config)
 _ = try await engine.get(url)
 #expect(mock.capturedRequest?.httpMethod == "GET")
@@ -334,7 +334,7 @@ swift test
 
 # Quality Gate 3 — no force-unwraps introduced in Sources/
 grep -r "!\." Sources/ --include="*.swift" | grep -v "// "
-# Expected: no new occurrences in Sources/HTTPLib/HTTPClient.Configuration.swift
+# Expected: no new occurrences in Sources/HTTPClientLib/Implementation/DefaultHTTPClient+Configuration.swift
 #           or in modified sections of HTTPClient.swift / RequestBuilder.swift
 ```
 

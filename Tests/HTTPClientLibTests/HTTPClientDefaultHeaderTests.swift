@@ -9,9 +9,9 @@ import Foundation
     // Shared helper: builds an engine + mock session pair with optional default headers.
     private func makeEngine(
         defaultHeaders: [String: String]? = nil
-    ) -> (HTTPClient, MockURLProtocol.MockContext) {
+    ) -> (DefaultHTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPClient(session: session, defaultHeaders: defaultHeaders)
+        let engine = DefaultHTTPClient(session: session, defaultHeaders: defaultHeaders)
         return (engine, mock)
     }
 

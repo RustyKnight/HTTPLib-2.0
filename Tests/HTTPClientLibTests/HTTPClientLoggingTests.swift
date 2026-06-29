@@ -6,7 +6,7 @@ import Foundation
 
     private let url = URL(string: "https://example.com")!
 
-    private final class CapturingLogger: HTTPClient.Logger, @unchecked Sendable {
+    private final class CapturingLogger: DefaultHTTPClient.Logger, @unchecked Sendable {
         let includeHeaders: Bool
         let includeBody: Bool
         private let lock = NSLock()
@@ -26,9 +26,9 @@ import Foundation
 
     private func makeEngine(
         logger: CapturingLogger
-    ) -> (HTTPClient, MockURLProtocol.MockContext, CapturingLogger) {
+    ) -> (DefaultHTTPClient, MockURLProtocol.MockContext, CapturingLogger) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPClient(session: session, logger: logger), mock, logger)
+        return (DefaultHTTPClient(session: session, logger: logger), mock, logger)
     }
 
     @Test func logsMethodAndURLByDefault() async throws {
@@ -53,7 +53,7 @@ import Foundation
         ])
     }
 
-    @Test func includesTextBodyAndKeepsBinaryBodiesAsBase64() async throws {
+    @Test func includesTextBodyAndMarksBinaryBodiesAsBinaryData() async throws {
         let logger = CapturingLogger(includeBody: true)
         let (engine, mock, capturingLogger) = makeEngine(logger: logger)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
@@ -69,7 +69,7 @@ import Foundation
 
         #expect(capturingLogger.messages == [
             "[POST] https://example.com\nBody: hello",
-            "[POST] https://example.com\nBody: base64://4="
+            "[POST] https://example.com\nBody: [binary data]"
         ])
     }
 }

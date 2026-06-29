@@ -1,6 +1,6 @@
 import Foundation
 
-public extension HTTPClient {
+public extension DefaultHTTPClient {
     protocol Logger: Sendable {
         var includeHeaders: Bool { get }
         var includeBody: Bool { get }

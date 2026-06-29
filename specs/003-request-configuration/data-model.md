@@ -10,11 +10,11 @@ here are unchanged from Feature 002 (`specs/002-configurable-headers/data-model.
 
 ## New Nested Public Types
 
-### `HTTPClient.Configuration`
+### `DefaultHTTPClient.Configuration`
 
-**Kind**: `public struct` (nested inside `HTTPClient` via `public extension HTTPClient`)
+**Kind**: `public struct` (nested inside `DefaultHTTPClient` via `public extension DefaultHTTPClient`)
 **Conforms to**: `Sendable` (synthesised — all stored properties are `let` and `Sendable`)
-**Location**: `Sources/HTTPLib/HTTPClient.Configuration.swift` *(new file)*
+**Location**: `Sources/HTTPClientLib/Implementation/DefaultHTTPClient+Configuration.swift` *(new file)*
 **Spec ref**: FR-001, FR-002, FR-003, FR-005, FR-006, FR-009, FR-010, A-01–A-09
 
 #### Stored Properties
@@ -54,13 +54,13 @@ public static let `default` = Configuration()
 ```
 
 The canonical built-in default instance (FR-003). Used as the default parameter
-value on `HTTPClient.init`: `configuration: HTTPClient.Configuration = .default`.
+value on `DefaultHTTPClient.init`: `configuration: DefaultHTTPClient.Configuration = .default`.
 The backtick escaping is required in the declaration because `default` is a Swift
 keyword; call sites use the clean member-access form `.default` without backticks.
 
 #### Concurrency
 
-`HTTPClient.Configuration` is a value type with all-`let` stored properties. It is
+`DefaultHTTPClient.Configuration` is a value type with all-`let` stored properties. It is
 `Sendable` by synthesis. Passing the same configuration value to multiple
 simultaneous engines or request calls is safe: each engine receives its own copy
 (value semantics), so no shared mutable state exists between concurrent uses
@@ -70,12 +70,22 @@ simultaneous engines or request calls is safe: each engine receives its own copy
 
 ## Changed Public Types
 
-### `HTTPClient` (updated)
+### `HTTPClient` (updated protocol)
+
+**Kind**: `public protocol`
+**Conforms to**: `Sendable`
+**Location**: `Sources/HTTPClientLib/HTTPClient.swift`
+**Spec ref**: FR-007, FR-008, A-07
+
+`HTTPClient` is the decoupled public surface. It defines request methods and convenience
+overloads while remaining implementation-agnostic.
+
+### `DefaultHTTPClient` (updated default implementation)
 
 **Kind**: `public struct`
-**Conforms to**: `Sendable` (synthesised — unchanged)
-**Location**: `Sources/HTTPLib/HTTPClient.swift`
-**Spec ref**: FR-004, FR-007, FR-008, FR-009, A-07, A-09
+**Conforms to**: `HTTPClient`, `Sendable` (synthesised)
+**Location**: `Sources/HTTPClientLib/Implementation/DefaultHTTPClient.swift`
+**Spec ref**: FR-004, FR-005, FR-009, A-07, A-09
 
 #### Removed from Public API (BREAKING — requires MAJOR version bump, A-09)
 
@@ -142,7 +152,7 @@ private func dispatch(
 ### `RequestBuilder` (updated)
 
 **Kind**: `internal enum` (set of `static` functions)
-**Location**: `Sources/HTTPLib/Internal/RequestBuilder.swift`
+**Location**: `Sources/HTTPClientLib/Internal/RequestBuilder.swift`
 **Spec ref**: FR-005, FR-007, FR-009, A-07
 
 #### Updated signature
@@ -153,13 +163,13 @@ static func buildRequest(
     method: HTTPMethod,
     headers: [String: String]?,
     body: RequestBody?,
-    configuration: HTTPClient.Configuration,   // replaces configurator: RequestConfigurator?
+    configuration: DefaultHTTPClient.Configuration,   // replaces configurator: RequestConfigurator?
     defaultHeaders: [String: String]
 ) throws -> URLRequest
 ```
 
 The `configurator: RequestConfigurator?` parameter is removed. The
-`configuration: HTTPClient.Configuration` parameter is added.
+`configuration: DefaultHTTPClient.Configuration` parameter is added.
 
 #### Updated assembly steps
 
@@ -205,7 +215,7 @@ inline block is updated to:
 
 | Symbol | Kind | Reason |
 |--------|------|--------|
-| `RequestConfigurator` | `public typealias` | Superseded by `HTTPClient.Configuration` (FR-008) |
+| `RequestConfigurator` | `public typealias` | Superseded by `DefaultHTTPClient.Configuration` (FR-008) |
 | `HTTPClient.configurator` | `public let` stored property | Superseded; see Decision 6 |
 
 ---
@@ -227,7 +237,7 @@ The following types are unaffected by this feature:
 
 | File | Description |
 |------|-------------|
-| `Sources/HTTPLib/HTTPClient.Configuration.swift` | `public extension HTTPClient { struct Configuration ... }` |
+| `Sources/HTTPClientLib/Implementation/DefaultHTTPClient+Configuration.swift` | `public extension DefaultHTTPClient { struct Configuration ... }` |
 
 ---
 
@@ -235,8 +245,8 @@ The following types are unaffected by this feature:
 
 | File | Change summary |
 |------|---------------|
-| `Sources/HTTPLib/HTTPClient.swift` | Remove `RequestConfigurator` typealias, `configurator` property + init param; add `configuration: Configuration = .default` to `HTTPClient.init`; store as `public let configuration: Configuration`; apply via `self.configuration` in `dispatch` and inline multipart path |
-| `Sources/HTTPLib/Internal/RequestBuilder.swift` | Replace `configurator: RequestConfigurator?` with `configuration: HTTPClient.Configuration`; apply configuration properties at Step 1; remove Step 4 configurator callback |
+| `Sources/HTTPClientLib/Implementation/DefaultHTTPClient.swift` | Remove `RequestConfigurator` typealias path usage and `configurator` init support; add `configuration: Configuration = .default` to `DefaultHTTPClient.init`; store as `public let configuration: Configuration`; apply via `self.configuration` in `dispatch` and inline multipart path |
+| `Sources/HTTPClientLib/Internal/RequestBuilder.swift` | Replace `configurator: RequestConfigurator?` with `configuration: DefaultHTTPClient.Configuration`; apply configuration properties at Step 1; remove Step 4 configurator callback |
 
 ---
 
@@ -245,7 +255,7 @@ The following types are unaffected by this feature:
 ### `HTTPClientConfigurationTests`
 
 **Kind**: Swift Testing `@Suite`
-**Location**: `Tests/HTTPLibTests/HTTPClientConfigurationTests.swift` *(new file)*
+**Location**: `Tests/HTTPClientLibTests/HTTPClientConfigurationTests.swift` *(new file)*
 **Spec ref**: All US1–US4 acceptance scenarios + edge cases
 
 | Test | Scenario | Spec ref |
@@ -253,12 +263,12 @@ The following types are unaffected by this feature:
 | `defaultConfigurationIsAppliedWhenNoArgumentSupplied` | Engine init with no config arg; GET request; URLRequest has `timeoutInterval` = 60.0 | US1-AC-1 |
 | `defaultConfigurationMatchesPlatformDefaults` | All 6 properties of `.default` match URLRequest platform defaults | US1-AC-2 |
 | `existingCallSitesUnchangedWithDefaultConfig` | Engine with no config; all HTTP methods; captured requests carry default property values | US1-AC-3 |
-| `customTimeoutAppliedToRequest` | `HTTPClient(configuration: .init(timeoutInterval: 120.0))` GET; captured request has `timeoutInterval` = 120.0 | US2-AC-1 |
-| `customCachePolicyAppliedToRequest` | `HTTPClient(configuration: .init(cachePolicy: .reloadIgnoringLocalCacheData))` POST; captured request has matching cache policy | US2-AC-2 |
-| `cellularAccessDisabledAppliedToRequest` | `HTTPClient(configuration: .init(allowsCellularAccess: false))` GET; captured request disallows cellular | US2-AC-3 |
-| `expensiveNetworkAccessDisabledAppliedToRequest` | `HTTPClient(configuration: .init(allowsExpensiveNetworkAccess: false))` GET; captured request reflects restriction | US2-AC-4 |
-| `constrainedNetworkAccessDisabledAppliedToRequest` | `HTTPClient(configuration: .init(allowsConstrainedNetworkAccess: false))` GET; captured request reflects restriction | US2-AC-5 |
-| `cookieHandlingDisabledAppliedToRequest` | `HTTPClient(configuration: .init(httpShouldHandleCookies: false))` GET; captured request has `httpShouldHandleCookies` = false | US2-AC-6 |
+| `customTimeoutAppliedToRequest` | `DefaultHTTPClient(configuration: .init(timeoutInterval: 120.0))` GET; captured request has `timeoutInterval` = 120.0 | US2-AC-1 |
+| `customCachePolicyAppliedToRequest` | `DefaultHTTPClient(configuration: .init(cachePolicy: .reloadIgnoringLocalCacheData))` POST; captured request has matching cache policy | US2-AC-2 |
+| `cellularAccessDisabledAppliedToRequest` | `DefaultHTTPClient(configuration: .init(allowsCellularAccess: false))` GET; captured request disallows cellular | US2-AC-3 |
+| `expensiveNetworkAccessDisabledAppliedToRequest` | `DefaultHTTPClient(configuration: .init(allowsExpensiveNetworkAccess: false))` GET; captured request reflects restriction | US2-AC-4 |
+| `constrainedNetworkAccessDisabledAppliedToRequest` | `DefaultHTTPClient(configuration: .init(allowsConstrainedNetworkAccess: false))` GET; captured request reflects restriction | US2-AC-5 |
+| `cookieHandlingDisabledAppliedToRequest` | `DefaultHTTPClient(configuration: .init(httpShouldHandleCookies: false))` GET; captured request has `httpShouldHandleCookies` = false | US2-AC-6 |
 | `multiplePropertiesAllAppliedSimultaneously` | Engine with non-default timeout + cache policy + cellular=false; all three reflected in captured request | US2-AC-7 |
 | `configurationIsolatedAcrossSequentialRequests` | Engine with custom timeout; two sequential requests; both captured requests carry same custom timeout | US3-AC-1 |
 | `configurationValueNotMutatedByRequestCall` | Same config used to init engine; two calls later config properties unchanged | US3-AC-2 |
@@ -276,7 +286,7 @@ The following types are unaffected by this feature:
 
 | File | Test | Migration |
 |------|------|-----------|
-| `HTTPClientGetTests.swift` | `configuratorMutatesRequestBeforeDispatch` | Renamed to `customTimeoutAppliedViaConfiguration`; migrated to `HTTPClient(session: session, configuration: HTTPClient.Configuration(timeoutInterval: 42))` |
+| `HTTPClientGetTests.swift` | `configuratorMutatesRequestBeforeDispatch` | Renamed to `customTimeoutAppliedViaConfiguration`; migrated to `DefaultHTTPClient(session: session, configuration: DefaultHTTPClient.Configuration(timeoutInterval: 42))` |
 | `HTTPClientPostTests.swift` | `configuratorIsInvokedForPostRequests` | Renamed to `perRequestHeadersAppliedToPostRequest`; migrated to `headers: ["X-Injected": "injected-value"]` on `post` call (capability unchanged; API surface changes) |
 
 ---
@@ -289,7 +299,7 @@ HTTPClient
   ├── holds → configuration: Configuration      ← NEW stored property (engine-level)
   ├── holds → defaultHeaders: [String: String]   (immutable; unchanged from Feature 002)
   ├── delegates assembly to → RequestBuilder (internal)
-  │     ├── receives → configuration: HTTPClient.Configuration   ← NEW parameter
+  │     ├── receives → configuration: DefaultHTTPClient.Configuration   ← NEW parameter
   │     ├── receives → defaultHeaders: [String: String]          (unchanged)
   │     ├── produces → URLRequest (4-step assembly; see below)
   │     ├── encodes  → RequestBody       (.text / .binary / .json)
@@ -298,7 +308,7 @@ HTTPClient
   ├── dispatches via → URLSession.data(for:delegate:)
   └── returns → HTTPResponse            (.statusCode + .body)
 
-HTTPClient.Configuration (NEW — nested via public extension)
+DefaultHTTPClient.Configuration (NEW — nested via public extension)
   ├── carries → timeoutInterval: TimeInterval
   ├── carries → cachePolicy: URLRequest.CachePolicy
   ├── carries → allowsCellularAccess: Bool
@@ -308,7 +318,7 @@ HTTPClient.Configuration (NEW — nested via public extension)
   └── provides → static let default: Configuration   (all platform defaults)
 
 URLRequest assembly order (new, 4 steps):
-  Step 1: HTTPClient.Configuration properties (transport-level settings)
+  Step 1: DefaultHTTPClient.Configuration properties (transport-level settings)
   Step 2: defaultHeaders (header priority tier 1 — lowest)
   Step 3: per-request headers (header priority tier 2)
   Step 4: library Content-Type + httpBody (header priority tier 3 — highest)

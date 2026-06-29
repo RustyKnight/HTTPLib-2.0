@@ -1,7 +1,10 @@
 import Foundation
 
-
-public extension HTTPClient {
+public extension DefaultHTTPClient {
+    /// Immutable transport configuration for `DefaultHTTPClient`.
+    ///
+    /// This configuration is intentionally implementation-specific so the protocol
+    /// surface remains minimal and implementation-agnostic.
     // FR-001, FR-002, FR-003, FR-005, FR-006, FR-010: typed, immutable per-request transport configuration
     // Replaces the closure-based RequestConfigurator mechanism from Feature 001 (FR-011)
     // Sendable conformance is synthesised automatically — all stored properties are `let` and Sendable.
@@ -32,10 +35,10 @@ public extension HTTPClient {
         
         // MARK: - Initialiser (FR-003, FR-009)
         
-        /// Creates a `HTTPClient.Configuration` value.
+        /// Creates a `DefaultHTTPClient.Configuration` value.
         ///
         /// All parameters default to the platform-standard `URLRequest` defaults, so calling
-        /// `HTTPClient.Configuration()` produces the same transport settings that `URLRequest` applies
+        /// `DefaultHTTPClient.Configuration()` produces the same transport settings that `URLRequest` applies
         /// when none of these properties are set explicitly.
         ///
         /// - Parameters:
@@ -67,7 +70,7 @@ public extension HTTPClient {
         /// platform-standard `URLRequest` defaults.
         ///
         /// This instance is used as the default parameter value on every HTTP method:
-        /// `configuration: HTTPClient.Configuration = .default`
+        /// `configuration: DefaultHTTPClient.Configuration = .default`
         ///
         /// Using `.default` at a call site is optional — omitting the `configuration:` argument
         /// is equivalent (FR-009, A-08).

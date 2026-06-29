@@ -6,9 +6,9 @@ import Foundation
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (DefaultHTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPClient(session: session), mock)
+        return (DefaultHTTPClient(session: session), mock)
     }
 
     // MARK: - User Story 1
@@ -87,7 +87,7 @@ import Foundation
     // US1-AC-1 (Feature 003): per-request headers applied to POST request (migrated from configurator test)
     @Test func perRequestHeadersAppliedToPostRequest() async throws {
         let (session, mock) = MockURLProtocol.makePair()
-        let engine = HTTPClient(session: session)
+        let engine = DefaultHTTPClient(session: session)
         mock.stub = (MockURLProtocol.makeResponse(url: url, statusCode: 200), Data())
         _ = try await engine.post(url, headers: ["X-Injected": "injected-value"])
         #expect(mock.capturedRequest?.value(forHTTPHeaderField: "X-Injected") == "injected-value")

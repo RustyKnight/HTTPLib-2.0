@@ -1,21 +1,22 @@
+//
+//  HTTPResponse.swift
+//  HTTPClientLib
+//
+//  Created by Shane Whitehead on 30/6/2026.
+//
+
 import Foundation
 
-// FR-004, FR-008: status code + optional body; non-2xx never thrown
-public struct HTTPResponse: Sendable {
-    public let url: URL
-    public let method: HTTPMethod
-    public let headers: [String: String]
-    public let statusCode: Int
-    public let body: Data?
-
-    // Only HTTPClient constructs HTTPResponse values inside the module, never a caller.
-    init(url: URL, method: HTTPMethod, headers: [String: String], statusCode: Int, body: Data?) {
-        self.url = url
-        self.method = method
-        self.headers = headers
-        self.statusCode = statusCode
-        self.body = body
-    }
+/// Protocol-first HTTP response surface returned by `HTTPClient`.
+///
+/// This protocol decouples response handling from any concrete implementation.
+/// `DefaultHTTPResponse` is the module's built-in response type.
+public protocol HTTPResponse: Sendable {
+    var url: URL { get }
+    var method: HTTPMethod { get }
+    var headers: [String: String] { get }
+    var statusCode: Int { get }
+    var body: Data? { get }
 }
 
 

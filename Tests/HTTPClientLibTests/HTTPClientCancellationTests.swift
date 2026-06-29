@@ -6,9 +6,9 @@ import Foundation
 
     private let url = URL(string: "https://example.com")!
 
-    private func makeEngine() -> (HTTPClient, MockURLProtocol.MockContext) {
+    private func makeEngine() -> (DefaultHTTPClient, MockURLProtocol.MockContext) {
         let (session, mock) = MockURLProtocol.makePair()
-        return (HTTPClient(session: session), mock)
+        return (DefaultHTTPClient(session: session), mock)
     }
 
     // FR-007, research Decision 8: pre-flight cancellation throws CancellationError, not networkError
