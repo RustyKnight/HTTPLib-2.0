@@ -58,7 +58,11 @@ public struct HTTPClient: Sendable {
         }
 
         // FR-008: non-2xx status codes are returned to the caller, not thrown
+        let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
         return HTTPResponse(
+            url: url,
+            method: method,
+            headers: responseHeaders,
             statusCode: httpResponse.statusCode,
             body: data.isEmpty ? nil : data
         )
@@ -152,7 +156,14 @@ public struct HTTPClient: Sendable {
                 throw HTTPClientError.networkError(URLError(.badServerResponse))
             }
             // FR-008: non-2xx returned, not thrown
-            return HTTPResponse(statusCode: httpResponse.statusCode, body: data.isEmpty ? nil : data)
+            let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
+            return HTTPResponse(
+                url: url,
+                method: .post,
+                headers: responseHeaders,
+                statusCode: httpResponse.statusCode,
+                body: data.isEmpty ? nil : data
+            )
         } catch is CancellationError {
             throw CancellationError()  // FR-007: CancellationError propagates directly
         } catch let e as HTTPClientError {

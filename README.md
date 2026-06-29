@@ -6,6 +6,8 @@ This is intended as a lightweight HTTP engine for basic web service interactions
 
 # Experimental
 
+<img src=".assets/github-copilot-icon.svg" alt="GitHub Copilot" width="128" height="128">
+
 This is an experiment with Github SpecKit and Github Copilot.
 
 # Highlights
