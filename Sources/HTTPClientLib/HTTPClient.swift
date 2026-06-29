@@ -8,15 +8,18 @@ public struct HTTPClient: Sendable {
     public let configuration: Configuration
     // FR-002, FR-004, FR-007: immutable default headers applied to every outbound request (lowest priority tier)
     public let defaultHeaders: [String: String]
+    public let logger: (any HTTPClient.Logger)?
 
     public init(
         session: URLSession = .shared,
         configuration: Configuration = .default,
-        defaultHeaders: [String: String]? = nil
+        defaultHeaders: [String: String]? = nil,
+        logger: (any HTTPClient.Logger)? = nil
     ) {
         self.session = session
         self.configuration = configuration
         self.defaultHeaders = defaultHeaders ?? [:]
+        self.logger = logger
     }
 
     // MARK: - Shared dispatch helper
@@ -40,6 +43,8 @@ public struct HTTPClient: Sendable {
             configuration: configuration,        // Feature 003: replaces configurator (FR-008)
             defaultHeaders: self.defaultHeaders  // FR-002: engine-level default headers (step 2)
         )
+
+        log(request: request, method: method)
 
         let data: Data
         let urlResponse: URLResponse
@@ -149,6 +154,8 @@ public struct HTTPClient: Sendable {
 
         request.httpBody = multipartBody
 
+        log(request: request, method: .post)
+
         // FR-010: routes through injected session
         do {
             let (data, urlResponse) = try await self.session.data(for: request)
@@ -171,6 +178,17 @@ public struct HTTPClient: Sendable {
         } catch {
             throw HTTPClientError.networkError(error)
         }
+    }
+
+    private func log(request: URLRequest, method: HTTPMethod) {
+        guard let logger else { return }
+        logger.log(
+            request.httpClientLogDescription(
+                method: method,
+                includeHeaders: logger.includeHeaders,
+                includeBody: logger.includeBody
+            )
+        )
     }
 
     /// DELETE with an optional body.
