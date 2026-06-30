@@ -47,6 +47,8 @@ public protocol HTTPClient: Sendable {
         headers: [String: String]?
     ) async throws -> HTTPResponse
 
+    // MARK: - DELETE (FR-002)
+
     /// Sends a `DELETE` request with an optional body.
     func delete(
         _ url: URL,
@@ -56,16 +58,16 @@ public protocol HTTPClient: Sendable {
 }
 
 public extension HTTPClient {
-    
+
     // MARK: - GET
-    
+
     /// Convenience overload for requests with no per-request headers.
     func get(_ url: URL) async throws -> HTTPResponse {
         try await get(url, headers: nil)
     }
-    
+
     // MARK: - POST
-    
+
     /// Convenience overload for a request body with no per-request headers.
     func post(
         _ url: URL,
@@ -81,9 +83,14 @@ public extension HTTPClient {
     ) async throws -> HTTPResponse {
         try await post(url, body: nil, headers: headers)
     }
-    
+
+    /// Convenience overload for body-less requests with no per-request headers.
+    func post(_ url: URL) async throws -> HTTPResponse {
+        try await post(url, body: nil, headers: nil)
+    }
+
     // MARK: - PUT
-    
+
     /// Convenience overload for a request body with no per-request headers.
     func put(
         _ url: URL,
@@ -99,9 +106,24 @@ public extension HTTPClient {
     ) async throws -> HTTPResponse {
         try await put(url, body: nil, headers: headers)
     }
-    
+
+    /// Convenience overload for body-less requests with no per-request headers.
+    func put(_ url: URL) async throws -> HTTPResponse {
+        try await put(url, body: nil, headers: nil)
+    }
+
+    // MARK: - POST multipart
+
+    /// Convenience overload for multipart requests with no per-request headers.
+    func post(
+        _ url: URL,
+        formItems: [FormItem]
+    ) async throws -> HTTPResponse {
+        try await post(url, formItems: formItems, headers: nil)
+    }
+
     // MARK: - DELETE
-    
+
     /// Convenience overload for a request body with no per-request headers.
     func delete(
         _ url: URL,
@@ -118,4 +140,8 @@ public extension HTTPClient {
         try await delete(url, body: nil, headers: headers)
     }
 
+    /// Convenience overload for body-less requests with no per-request headers.
+    func delete(_ url: URL) async throws -> HTTPResponse {
+        try await delete(url, body: nil, headers: nil)
+    }
 }

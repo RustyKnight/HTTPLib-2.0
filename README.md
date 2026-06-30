@@ -73,6 +73,34 @@ func fetchHealth(using client: any HTTPClient, url: URL) async throws -> Int {
 }
 ```
 
+## Convenience overloads
+
+`HTTPClient` includes convenience overloads via protocol extension so common calls
+can omit `nil` body/header arguments:
+
+```swift
+// GET
+try await client.get(url)
+
+// POST
+try await client.post(url)
+try await client.post(url, body: .json(payload))
+try await client.post(url, headers: ["X-Trace": "123"])
+
+// PUT
+try await client.put(url)
+try await client.put(url, body: .text("hello"))
+try await client.put(url, headers: ["If-Match": etag])
+
+// DELETE
+try await client.delete(url)
+try await client.delete(url, body: .text("reason"))
+try await client.delete(url, headers: ["X-Soft-Delete": "true"])
+
+// Multipart POST
+try await client.post(url, formItems: items)
+```
+
 ## Example: default headers + per-request override
 
 ```swift

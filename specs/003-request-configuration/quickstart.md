@@ -26,6 +26,27 @@ The test target `HTTPClientLibTests` depends on `HTTPClientLib`. All tests run i
 
 ---
 
+## Protocol Convenience Overloads
+
+`HTTPClient` now includes additive convenience overloads in a public protocol
+extension (`get(_:)`, body-only and headers-only variants for `post`/`put`/`delete`,
+no-argument `post`/`put`/`delete`, and multipart `post(_:formItems:)` without headers).
+These overloads forward to the required protocol methods and do not change custom
+conformance requirements.
+
+Validate forwarding behavior with:
+
+```bash
+swift test --filter HTTPClientProtocolSurfaceTests
+```
+
+Key forwarding scenarios currently covered:
+- `convenienceGetForwardsToHeadersOverload`
+- `conveniencePostBodyForwardsNilHeaders`
+- `conveniencePostHeadersForwardsNilBody`
+
+---
+
 ## User Story 1 — Zero-Config Default Behaviour (P1)
 
 **Goal**: Verify that creating an `HTTPClient` without a `configuration:` argument

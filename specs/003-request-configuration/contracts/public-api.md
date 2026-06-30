@@ -101,7 +101,7 @@ public let defaultHeaders: [String: String]     // unchanged
 // configurator: RequestConfigurator?  — REMOVED
 ```
 
-### HTTP method signatures (unchanged)
+### Required HTTPClient method signatures (unchanged)
 
 HTTP method signatures are **not changed** by this feature. Configuration is applied
 uniformly via the engine's stored `configuration` property. All existing call sites
@@ -142,6 +142,38 @@ public func delete(
     headers: [String: String]? = nil
 ) async throws -> HTTPResponse
 ```
+
+### Convenience overloads (additive protocol extension surface)
+
+`HTTPClient` also exposes additive convenience overloads in a `public extension`.
+These forward to the required signatures above with `nil` defaults for omitted
+body/header arguments:
+
+```swift
+// GET
+public func get(_ url: URL) async throws -> HTTPResponse
+
+// POST
+public func post(_ url: URL, body: RequestBody) async throws -> HTTPResponse
+public func post(_ url: URL, headers: [String: String]) async throws -> HTTPResponse
+public func post(_ url: URL) async throws -> HTTPResponse
+
+// PUT
+public func put(_ url: URL, body: RequestBody) async throws -> HTTPResponse
+public func put(_ url: URL, headers: [String: String]) async throws -> HTTPResponse
+public func put(_ url: URL) async throws -> HTTPResponse
+
+// POST multipart
+public func post(_ url: URL, formItems: [FormItem]) async throws -> HTTPResponse
+
+// DELETE
+public func delete(_ url: URL, body: RequestBody) async throws -> HTTPResponse
+public func delete(_ url: URL, headers: [String: String]) async throws -> HTTPResponse
+public func delete(_ url: URL) async throws -> HTTPResponse
+```
+
+These overloads are source-compatible additions and do not affect conformance
+requirements for custom `HTTPClient` implementations.
 
 ---
 

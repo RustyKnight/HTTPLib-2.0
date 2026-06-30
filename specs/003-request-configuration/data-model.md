@@ -117,7 +117,7 @@ The `configurator: RequestConfigurator? = nil` parameter is removed and replaced
 by `configuration: Configuration = .default`. All init call sites that do not
 supply either parameter compile unchanged (FR-009 / A-08).
 
-#### HTTP Method Signatures (unchanged)
+#### Required HTTPClient Method Signatures (unchanged)
 
 HTTP method signatures are **not changed** by this feature. Configuration is
 applied uniformly via the engine's stored `configuration` property, not via
@@ -130,6 +130,27 @@ per-request parameters. All existing call sites compile unchanged:
 | POST (multipart) | `post(_ url: URL, formItems: [FormItem], headers: [String: String]? = nil) async throws -> HTTPResponse` |
 | PUT | `put(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse` |
 | DELETE | `delete(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse` |
+
+#### Convenience Overloads (additive protocol extension surface)
+
+`HTTPClient` includes convenience overloads in a `public extension` that forward
+to the required signatures above:
+
+| Method | Signature |
+|--------|-----------|
+| GET | `get(_ url: URL) async throws -> HTTPResponse` |
+| POST (body only) | `post(_ url: URL, body: RequestBody) async throws -> HTTPResponse` |
+| POST (headers only) | `post(_ url: URL, headers: [String: String]) async throws -> HTTPResponse` |
+| POST (no body, no headers) | `post(_ url: URL) async throws -> HTTPResponse` |
+| PUT (body only) | `put(_ url: URL, body: RequestBody) async throws -> HTTPResponse` |
+| PUT (headers only) | `put(_ url: URL, headers: [String: String]) async throws -> HTTPResponse` |
+| PUT (no body, no headers) | `put(_ url: URL) async throws -> HTTPResponse` |
+| POST multipart (no headers) | `post(_ url: URL, formItems: [FormItem]) async throws -> HTTPResponse` |
+| DELETE (body only) | `delete(_ url: URL, body: RequestBody) async throws -> HTTPResponse` |
+| DELETE (headers only) | `delete(_ url: URL, headers: [String: String]) async throws -> HTTPResponse` |
+| DELETE (no body, no headers) | `delete(_ url: URL) async throws -> HTTPResponse` |
+
+These do not add conformance requirements for custom `HTTPClient` types.
 
 #### Updated `dispatch` (private helper)
 
