@@ -66,13 +66,17 @@ public struct DefaultHTTPClient: HTTPClient {
 
         // FR-008: non-2xx status codes are returned to the caller, not thrown
         let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
-        return DefaultHTTPResponse(
+        let httpResponseObj = DefaultHTTPResponse(
             url: url,
             method: method,
             headers: responseHeaders,
             statusCode: httpResponse.statusCode,
             body: data.isEmpty ? nil : data
         )
+        
+        log(response: httpResponseObj)
+        
+        return httpResponseObj
     }
 
     // MARK: - GET (FR-002, FR-014 — no body parameter)
@@ -164,15 +168,20 @@ public struct DefaultHTTPClient: HTTPClient {
             guard let httpResponse = urlResponse as? HTTPURLResponse else {
                 throw HTTPClientError.networkError(URLError(.badServerResponse))
             }
+            
             // FR-008: non-2xx returned, not thrown
             let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
-            return DefaultHTTPResponse(
+            let httpResponseObj = DefaultHTTPResponse(
                 url: url,
                 method: .post,
                 headers: responseHeaders,
                 statusCode: httpResponse.statusCode,
                 body: data.isEmpty ? nil : data
             )
+            
+            log(response: httpResponseObj)
+            
+            return httpResponseObj
         } catch is CancellationError {
             throw CancellationError()  // FR-007: CancellationError propagates directly
         } catch let e as HTTPClientError {
@@ -182,10 +191,21 @@ public struct DefaultHTTPClient: HTTPClient {
         }
     }
 
+    private func log(response: HTTPResponse) {
+        guard let logger else { return }
+        logger.log(
+            response: response
+                .logMessage(
+                    includeHeaders: logger.includeHeaders,
+                    includeBody: logger.includeBody
+                )
+        )
+    }
+
     private func log(request: URLRequest, method: HTTPMethod) {
         guard let logger else { return }
         logger.log(
-            request.httpClientLogDescription(
+            request: request.httpClientLogDescription(
                 method: method,
                 includeHeaders: logger.includeHeaders,
                 includeBody: logger.includeBody

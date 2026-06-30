@@ -27,6 +27,7 @@ This is an experiment with Github SpecKit and Github Copilot.
 - Multipart form-data upload support for `POST`
 - Typed errors via `HTTPClientError`
 - Non-2xx HTTP responses are returned (not thrown)
+- Optional request and response logging via `DefaultHTTPClient.Logger`
 
 # Requirements
 
@@ -208,3 +209,57 @@ do {
     }
 }
 ```
+
+## Logging requests and responses
+
+Implement the `DefaultHTTPClient.Logger` protocol to capture detailed logs of HTTP requests and responses:
+
+```swift
+import HTTPClientLib
+
+final class ConsoleLogger: DefaultHTTPClient.Logger {
+    let includeHeaders = true
+    let includeBody = true
+    
+    func log(request: String) {
+        print("🔵 REQUEST:")
+        print(request)
+    }
+    
+    func log(response: String) {
+        print("🟢 RESPONSE:")
+        print(response)
+    }
+}
+
+let client = DefaultHTTPClient(logger: ConsoleLogger())
+
+let response = try await client.get(URL(string: "https://api.example.com/users")!)
+```
+
+### Log output example
+
+Request:
+```
+🔵 REQUEST:
+[GET ] https://api.example.com/users
+Accept: application/json
+Authorization: Bearer token123
+```
+
+Response:
+```
+🟢 RESPONSE:
+[GET ] 200 https://api.example.com/users
+Content-Type: application/json
+Transfer-Encoding: chunked
+Body: [{"id": 1, "name": "John"}, ...]
+```
+
+### Logger configuration
+
+- `includeHeaders`: When `true`, request and response headers are included in logs (sorted alphabetically)
+- `includeBody`: When `true`, request and response bodies are included in logs
+  - Text-based content (JSON, XML, HTML, form-encoded, JavaScript) is rendered as-is
+  - Binary data is represented as `"[binary data]"`
+  - Empty or missing bodies are represented as `"[no data]"`
