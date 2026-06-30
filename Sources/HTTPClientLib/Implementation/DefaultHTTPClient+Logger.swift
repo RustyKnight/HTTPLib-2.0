@@ -39,22 +39,6 @@ public extension DefaultHTTPClient {
     /// }
     /// ```
     protocol Logger: Sendable {
-        /// Whether to include HTTP headers in logged messages.
-        ///
-        /// When `true`, request and response headers are provided in the log messages.
-        /// When `false`, the headers dictionary may be empty.
-        var includeHeaders: Bool { get }
-
-        /// Whether to include request and response bodies in logged messages.
-        ///
-        /// When `true`, request and response bodies are provided in the log messages:
-        /// - Text, JSON, XML, and form-encoded bodies are represented as strings
-        /// - Binary bodies are represented as `"[binary data]"`
-        /// - Empty or missing bodies are represented as `nil`
-        ///
-        /// When `false`, the body property may be `nil` even if data was present.
-        var includeBody: Bool { get }
-
         /// Logs an outgoing HTTP request.
         ///
         /// Called after the request is constructed but before it's sent to the network.
