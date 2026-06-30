@@ -46,7 +46,7 @@ public struct DefaultHTTPClient: HTTPClient {
             defaultHeaders: self.defaultHeaders  // FR-002: engine-level default headers (step 2)
         )
 
-        log(request: request, method: method)
+        log(request: request)
 
         let data: Data
         let urlResponse: URLResponse
@@ -137,7 +137,7 @@ public struct DefaultHTTPClient: HTTPClient {
 
         // Build request manually (body is pre-encoded — not a RequestBody variant)
         var request = URLRequest(url: url)
-        request.httpMethod = HTTPMethod.post.rawValue
+        request.method = .post
 
         // Step 1 — apply DefaultHTTPClient.Configuration transport properties (Feature 003, FR-005, A-07)
         request.timeoutInterval = configuration.timeoutInterval
@@ -160,7 +160,7 @@ public struct DefaultHTTPClient: HTTPClient {
 
         request.httpBody = multipartBody
 
-        log(request: request, method: .post)
+        log(request: request)
 
         // FR-010: routes through injected session
         do {
@@ -193,24 +193,12 @@ public struct DefaultHTTPClient: HTTPClient {
 
     private func log(response: HTTPResponse) {
         guard let logger else { return }
-        logger.log(
-            response: response
-                .logMessage(
-                    includeHeaders: logger.includeHeaders,
-                    includeBody: logger.includeBody
-                )
-        )
+        logger.log(response: response.logMessage())
     }
 
-    private func log(request: URLRequest, method: HTTPMethod) {
+    private func log(request: URLRequest) {
         guard let logger else { return }
-        logger.log(
-            request: request.httpClientLogDescription(
-                method: method,
-                includeHeaders: logger.includeHeaders,
-                includeBody: logger.includeBody
-            )
-        )
+        logger.log(request: request.logMessage())
     }
 
     /// DELETE with an optional body.

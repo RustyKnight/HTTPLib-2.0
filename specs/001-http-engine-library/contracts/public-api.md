@@ -258,6 +258,81 @@ non-standard GET semantics with a body may use the `RequestConfigurator` callbac
 
 ---
 
+### `DefaultHTTPClient.Logger`
+
+```swift
+public protocol Logger: Sendable {
+    var includeHeaders: Bool { get }
+    var includeBody: Bool { get }
+    
+    func log(request: HTTPRequestLogMessage)
+    func log(response: HTTPResponseLogMessage)
+}
+```
+
+Protocol for logging HTTP requests and responses. Implement this protocol to capture
+structured information about API requests and responses sent through a `DefaultHTTPClient`.
+
+#### Properties
+
+- `includeHeaders` — when `true`, HTTP headers are included in log messages; otherwise
+  the headers dictionary may be empty
+- `includeBody` — when `true`, request and response bodies are included in log messages;
+  otherwise the body property may be `nil` even if data was present
+
+#### Methods
+
+- `log(request:)` — called after request construction but before dispatch to the network
+- `log(response:)` — called after receiving a response from the network
+
+---
+
+### `DefaultHTTPClient.HTTPRequestLogMessage`
+
+```swift
+public protocol HTTPRequestLogMessage: Sendable {
+    var url: String { get }
+    var method: String { get }
+    var headers: [String: String] { get }
+    var body: String? { get }
+}
+```
+
+Structured log message for HTTP requests. Properties provide:
+
+- `url` — the complete request URL as a string
+- `method` — the HTTP method (GET, POST, PUT, DELETE) as a string
+- `headers` — request headers as a dictionary (may be empty if `Logger.includeHeaders` is `false`)
+- `body` — request body as a string; `nil` if missing or `Logger.includeBody` is `false`
+  - Text bodies (JSON, XML, form-encoded, etc.) are represented as strings
+  - Binary bodies are represented as `"[binary data]"`
+
+---
+
+### `DefaultHTTPClient.HTTPResponseLogMessage`
+
+```swift
+public protocol HTTPResponseLogMessage: Sendable {
+    var url: String { get }
+    var method: String { get }
+    var headers: [String: String] { get }
+    var statusCode: Int { get }
+    var body: String? { get }
+}
+```
+
+Structured log message for HTTP responses. Properties provide:
+
+- `url` — the complete request URL as a string
+- `method` — the HTTP method (GET, POST, PUT, DELETE) as a string
+- `headers` — response headers as a dictionary (may be empty if `Logger.includeHeaders` is `false`)
+- `statusCode` — the HTTP status code (200, 404, 500, etc.)
+- `body` — response body as a string; `nil` if missing or `Logger.includeBody` is `false`
+  - Text bodies (JSON, XML, form-encoded, etc.) are represented as strings
+  - Binary bodies are represented as `"[binary data]"`
+
+---
+
 ## Minimal usage examples
 
 ```swift

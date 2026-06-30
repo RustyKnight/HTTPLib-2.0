@@ -20,7 +20,7 @@ internal enum RequestBuilder {
         defaultHeaders: [String: String]         // FR-002: engine-level default headers (lowest header priority)
     ) throws -> URLRequest {
         var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
+        request.method = method
 
         // Step 1 — apply DefaultHTTPClient.Configuration transport properties (Feature 003, FR-005, A-07)
         // Applied before headers and body; engine-managed properties (method, URL, body, headers)

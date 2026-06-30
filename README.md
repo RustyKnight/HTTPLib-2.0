@@ -212,7 +212,7 @@ do {
 
 ## Logging requests and responses
 
-Implement the `DefaultHTTPClient.Logger` protocol to capture detailed logs of HTTP requests and responses:
+Implement the `DefaultHTTPClient.Logger` protocol to capture detailed logs of HTTP requests and responses. The logger receives structured `HTTPRequestLogMessage` and `HTTPResponseLogMessage` protocol objects, giving you full control over formatting and output:
 
 ```swift
 import HTTPClientLib
@@ -221,14 +221,28 @@ final class ConsoleLogger: DefaultHTTPClient.Logger {
     let includeHeaders = true
     let includeBody = true
     
-    func log(request: String) {
-        print("🔵 REQUEST:")
-        print(request)
+    func log(request: DefaultHTTPClient.HTTPRequestLogMessage) {
+        print("🔵 REQUEST: \(request.method) \(request.url)")
+        if includeHeaders {
+            request.headers.forEach { key, value in
+                print("  \(key): \(value)")
+            }
+        }
+        if includeBody, let body = request.body {
+            print("  Body: \(body)")
+        }
     }
     
-    func log(response: String) {
-        print("🟢 RESPONSE:")
-        print(response)
+    func log(response: DefaultHTTPClient.HTTPResponseLogMessage) {
+        print("🟢 RESPONSE: \(response.method) \(response.statusCode) \(response.url)")
+        if includeHeaders {
+            response.headers.forEach { key, value in
+                print("  \(key): \(value)")
+            }
+        }
+        if includeBody, let body = response.body {
+            print("  Body: \(body)")
+        }
     }
 }
 
@@ -237,29 +251,50 @@ let client = DefaultHTTPClient(logger: ConsoleLogger())
 let response = try await client.get(URL(string: "https://api.example.com/users")!)
 ```
 
+### HTTPRequestLogMessage protocol
+
+```swift
+public protocol HTTPRequestLogMessage: Sendable {
+    var url: String { get }
+    var method: String { get }
+    var headers: [String: String] { get }
+    var body: String? { get }
+}
+```
+
+### HTTPResponseLogMessage protocol
+
+```swift
+public protocol HTTPResponseLogMessage: Sendable {
+    var url: String { get }
+    var method: String { get }
+    var headers: [String: String] { get }
+    var statusCode: Int { get }
+    var body: String? { get }
+}
+```
+
 ### Log output example
 
 Request:
 ```
-🔵 REQUEST:
-[GET ] https://api.example.com/users
-Accept: application/json
-Authorization: Bearer token123
+🔵 REQUEST: GET https://api.example.com/users
+  Accept: application/json
+  Authorization: Bearer token123
 ```
 
 Response:
 ```
-🟢 RESPONSE:
-[GET ] 200 https://api.example.com/users
-Content-Type: application/json
-Transfer-Encoding: chunked
-Body: [{"id": 1, "name": "John"}, ...]
+🟢 RESPONSE: GET 200 https://api.example.com/users
+  Content-Type: application/json
+  Transfer-Encoding: chunked
+  Body: [{"id": 1, "name": "John"}, ...]
 ```
 
 ### Logger configuration
 
-- `includeHeaders`: When `true`, request and response headers are included in logs (sorted alphabetically)
-- `includeBody`: When `true`, request and response bodies are included in logs
-  - Text-based content (JSON, XML, HTML, form-encoded, JavaScript) is rendered as-is
+- `includeHeaders`: When `true`, the logger can access request and response headers
+- `includeBody`: When `true`, the logger can access request and response bodies
+  - Text-based content (JSON, XML, HTML, form-encoded, JavaScript) is provided as-is
   - Binary data is represented as `"[binary data]"`
-  - Empty or missing bodies are represented as `"[no data]"`
+  - Empty or missing bodies are represented as `nil`
