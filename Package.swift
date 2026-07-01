@@ -6,8 +6,8 @@ let package = Package(
     name: "HTTPClientLib",
     platforms: [
         .macOS(.v14),
-        .iOS(.v15),
-        .tvOS(.v15),
+        .iOS(.v16),
+        .tvOS(.v16),
         .visionOS(.v1)
     ],
     products: [
