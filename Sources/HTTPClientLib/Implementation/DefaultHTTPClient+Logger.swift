@@ -7,16 +7,9 @@ public extension DefaultHTTPClient {
     /// sent through a `DefaultHTTPClient`. The logger receives protocol objects containing
     /// the HTTP method, URL, status code (for responses), headers, and body.
     ///
-    /// The `includeHeaders` and `includeBody` properties control what data is available in the
-    /// log messages. When `includeHeaders` is `false`, the headers dictionary may be empty.
-    /// When `includeBody` is `false`, the body may be `nil` even if data was present.
-    ///
     /// ### Example implementation
     /// ```
     /// final class ConsoleLogger: DefaultHTTPClient.Logger {
-    ///     let includeHeaders = true
-    ///     let includeBody = true
-    ///
     ///     func log(request: DefaultHTTPClient.HTTPRequestLogMessage) {
     ///         print("→ \(request.method) \(request.url)")
     ///         request.headers.forEach { key, value in
@@ -42,8 +35,7 @@ public extension DefaultHTTPClient {
         /// Logs an outgoing HTTP request.
         ///
         /// Called after the request is constructed but before it's sent to the network.
-        /// The message contains the HTTP method, URL, and optionally headers and body
-        /// based on `includeHeaders` and `includeBody`.
+        /// The message contains the HTTP method, URL, headers, and optional body.
         ///
         /// - Parameter request: Structured log message for the HTTP request
         func log(request: HTTPRequestLogMessage)
@@ -51,8 +43,7 @@ public extension DefaultHTTPClient {
         /// Logs an incoming HTTP response.
         ///
         /// Called after the response is received from the network. The message contains
-        /// the HTTP method, status code, URL, and optionally headers and body based on
-        /// `includeHeaders` and `includeBody`.
+        /// the HTTP method, status code, URL, headers, and optional body.
         ///
         /// - Parameter response: Structured log message for the HTTP response
         func log(response: HTTPResponseLogMessage)
@@ -71,10 +62,10 @@ public extension DefaultHTTPClient {
         /// The HTTP method (GET, POST, PUT, DELETE, etc.) as a string.
         var method: String { get }
         
-        /// The HTTP headers as a dictionary. May be empty if `Logger.includeHeaders` is `false`.
+        /// The HTTP headers as a dictionary.
         var headers: [String: String] { get }
         
-        /// The request body, if present and `Logger.includeBody` is `true`.
+        /// The request body, if present.
         /// - Text bodies are represented as strings
         /// - Binary bodies are represented as `"[binary data]"`
         /// - Empty or missing bodies are `nil`
@@ -92,13 +83,13 @@ public extension DefaultHTTPClient {
         /// The HTTP method (GET, POST, PUT, DELETE, etc.) as a string.
         var method: String { get }
         
-        /// The HTTP headers as a dictionary. May be empty if `Logger.includeHeaders` is `false`.
+        /// The HTTP headers as a dictionary.
         var headers: [String: String] { get }
         
         /// The HTTP status code (200, 404, 500, etc.).
         var statusCode: Int { get }
         
-        /// The response body, if present and `Logger.includeBody` is `true`.
+        /// The response body, if present.
         /// - Text bodies are represented as strings
         /// - Binary bodies are represented as `"[binary data]"`
         /// - Empty or missing bodies are `nil`
@@ -181,10 +172,7 @@ private extension HTTPMethod {
 internal extension URLRequest {
     /// Generates a formatted log message for this HTTP request.
     ///
-    /// The log message includes:
-    /// - HTTP method and URL (always)
-    /// - Headers (if `includeHeaders` is true), sorted alphabetically
-    /// - Request body (if `includeBody` is true), with text/binary detection
+    /// The log message includes the HTTP method, URL, headers, and request body (if present).
     ///
     /// Example output:
     /// ```
@@ -194,10 +182,6 @@ internal extension URLRequest {
     /// Body: {"name": "John"}
     /// ```
     ///
-    /// - Parameters:
-    ///   - method: The HTTP method being used
-    ///   - includeHeaders: Whether to include headers in the output
-    ///   - includeBody: Whether to include the request body in the output
     /// - Returns: A multi-line string with the formatted request details
     func logMessage() -> DefaultHTTPClient.HTTPRequestLogMessage {
         let headers = (allHTTPHeaderFields ?? [:])
@@ -215,10 +199,7 @@ internal extension URLRequest {
 internal extension HTTPResponse {    
     /// Generates a formatted log message for this HTTP response.
     ///
-    /// The log message includes:
-    /// - HTTP method, status code, and URL (always)
-    /// - Headers (if `includeHeaders` is true), sorted alphabetically
-    /// - Response body (if `includeBody` is true), with text/binary detection
+    /// The log message includes the HTTP method, status code, URL, headers, and response body (if present).
     ///
     /// Example output:
     /// ```
@@ -228,9 +209,6 @@ internal extension HTTPResponse {
     /// Body: [{"id": 1, "name": "John"}, ...]
     /// ```
     ///
-    /// - Parameters:
-    ///   - includeHeaders: Whether to include headers in the output
-    ///   - includeBody: Whether to include the response body in the output
     /// - Returns: A multi-line string with the formatted response details
     func logMessage() -> DefaultHTTPClient.HTTPResponseLogMessage {
         let bodyText = body?.logMessage(contentType: headers.contentType)

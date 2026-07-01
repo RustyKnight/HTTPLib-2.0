@@ -20,6 +20,11 @@ This is an experiment with Github SpecKit and Github Copilot.
 - Engine-level default headers
 - Engine-level transport configuration via `DefaultHTTPClient.Configuration`
 - Optional custom `URLSession` injection
+- **Fine-grained progress tracking** via optional `SupportLib.ProgressTracker` parameter
+  - Per-byte upload progress tracking during request transmission
+  - Per-byte download progress tracking during response reception
+  - Hierarchical progress aggregation (parent = average of children)
+  - `ProgressTracker` is `ObservableObject` for Combine integration
 - Request bodies for `POST` / `PUT` / `DELETE`:
   - text (`.text`)
   - raw data (`.binary(Data, contentType:)`)
@@ -32,7 +37,7 @@ This is an experiment with Github SpecKit and Github Copilot.
 # Requirements
 
 - Swift 6.0+
-- macOS 10.15+, iOS 13+, tvOS 13+, visionOS 1+
+- macOS 12.0+, iOS 15.0+, tvOS 15.0+, visionOS 1.0+
 
 ## Add to your package
 
@@ -101,6 +106,25 @@ try await client.delete(url, headers: ["X-Soft-Delete": "true"])
 // Multipart POST
 try await client.post(url, formItems: items)
 ```
+
+## Optional progress parameter
+
+`HTTPClient` and `DefaultHTTPClient` expose an optional `progress:` parameter on all
+`get`/`post`/`put`/`delete` method variants (including multipart `post`):
+
+```swift
+import HTTPClientLib
+import SupportLib
+
+let progress = SupportLib.Progress()
+let response = try await DefaultHTTPClient().get(
+    URL(string: "https://api.example.com/users")!,
+    headers: nil,
+    progress: progress
+)
+```
+
+`progress` defaults to `nil`, so existing call sites do not need to change.
 
 ## Example: default headers + per-request override
 
@@ -187,6 +211,143 @@ let response = try await DefaultHTTPClient().post(
 )
 ```
 
+## Example: monitoring progress with Combine
+
+`ProgressTracker` is an `ObservableObject` that publishes progress updates. Use Combine to monitor and respond to progress changes:
+
+```swift
+import HTTPClientLib
+import SupportLib
+import Combine
+
+let client = DefaultHTTPClient()
+let progress = ProgressTracker()
+var cancellables: Set<AnyCancellable> = []
+
+// Monitor overall progress and log updates
+progress.$value
+    .sink { progressValue in
+        let percentage = Int(progressValue * 100)
+        print("Overall progress: \(percentage)%")
+    }
+    .store(in: &cancellables)
+
+// Start the HTTP request with progress tracking
+Task {
+    let response = try await client.get(
+        URL(string: "https://api.example.com/large-file")!,
+        progress: progress
+    )
+}
+```
+
+### Monitoring individual phases
+
+`ProgressTracker` creates hierarchical progress tracking with child trackers for request (upload) and response (download) phases. Monitor phases separately:
+
+```swift
+import HTTPClientLib
+import SupportLib
+import Combine
+
+let client = DefaultHTTPClient()
+let progress = ProgressTracker()
+var cancellables: Set<AnyCancellable> = []
+
+// Access children after creation by triggering the HTTP call
+Task {
+    // Start request in background
+    let responseTask = Task {
+        try await client.post(
+            URL(string: "https://api.example.com/upload")!,
+            body: .binary(largeData, contentType: "application/octet-stream"),
+            progress: progress
+        )
+    }
+    
+    // Give time for child trackers to be created
+    try? await Task.sleep(nanoseconds: 10_000_000)
+    
+    // Monitor both phases
+    if let uploadTracker = progress.children.first {
+        uploadTracker.$value
+            .sink { uploadProgress in
+                print("Upload: \(Int(uploadProgress * 100))%")
+            }
+            .store(in: &cancellables)
+    }
+    
+    if let downloadTracker = progress.children.last {
+        downloadTracker.$value
+            .sink { downloadProgress in
+                print("Download: \(Int(downloadProgress * 100))%")
+            }
+            .store(in: &cancellables)
+    }
+    
+    let response = try await responseTask.value
+}
+```
+
+### SwiftUI integration example
+
+Use `@StateObject` to track progress in SwiftUI views:
+
+```swift
+import HTTPClientLib
+import SupportLib
+import SwiftUI
+
+struct FileDownloadView: View {
+    @StateObject private var progress = ProgressTracker()
+    @State private var isLoading = false
+    @State private var statusMessage = "Ready"
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView(value: progress.value)
+            
+            Text("\(Int(progress.value * 100))% complete")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text(statusMessage)
+                .font(.body)
+            
+            if !isLoading {
+                Button("Download") {
+                    downloadFile()
+                }
+            }
+        }
+        .padding()
+    }
+    
+    private func downloadFile() {
+        isLoading = true
+        statusMessage = "Downloading..."
+        
+        Task {
+            do {
+                let client = DefaultHTTPClient()
+                let response = try await client.get(
+                    URL(string: "https://api.example.com/large-file")!,
+                    progress: progress
+                )
+                
+                statusMessage = response.statusCode == 200
+                    ? "Download complete"
+                    : "Error: \(response.statusCode)"
+                isLoading = false
+            } catch {
+                statusMessage = "Error: \(error.localizedDescription)"
+                isLoading = false
+            }
+        }
+    }
+}
+```
+
 ## Error handling
 
 ```swift
@@ -218,29 +379,22 @@ Implement the `DefaultHTTPClient.Logger` protocol to capture detailed logs of HT
 import HTTPClientLib
 
 final class ConsoleLogger: DefaultHTTPClient.Logger {
-    let includeHeaders = true
-    let includeBody = true
-    
     func log(request: DefaultHTTPClient.HTTPRequestLogMessage) {
         print("🔵 REQUEST: \(request.method) \(request.url)")
-        if includeHeaders {
-            request.headers.forEach { key, value in
-                print("  \(key): \(value)")
-            }
+        request.headers.forEach { key, value in
+            print("  \(key): \(value)")
         }
-        if includeBody, let body = request.body {
+        if let body = request.body {
             print("  Body: \(body)")
         }
     }
     
     func log(response: DefaultHTTPClient.HTTPResponseLogMessage) {
         print("🟢 RESPONSE: \(response.method) \(response.statusCode) \(response.url)")
-        if includeHeaders {
-            response.headers.forEach { key, value in
-                print("  \(key): \(value)")
-            }
+        response.headers.forEach { key, value in
+            print("  \(key): \(value)")
         }
-        if includeBody, let body = response.body {
+        if let body = response.body {
             print("  Body: \(body)")
         }
     }
@@ -291,10 +445,10 @@ Response:
   Body: [{"id": 1, "name": "John"}, ...]
 ```
 
-### Logger configuration
+### Logger message content
 
-- `includeHeaders`: When `true`, the logger can access request and response headers
-- `includeBody`: When `true`, the logger can access request and response bodies
+- Request and response headers are always provided via `headers`
+- `body` is `nil` when no body is present; otherwise:
   - Text-based content (JSON, XML, HTML, form-encoded, JavaScript) is provided as-is
   - Binary data is represented as `"[binary data]"`
-  - Empty or missing bodies are represented as `nil`
+  - Empty body data is represented as `"[no data]"`

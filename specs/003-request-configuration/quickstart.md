@@ -33,6 +33,9 @@ extension (`get(_:)`, body-only and headers-only variants for `post`/`put`/`dele
 no-argument `post`/`put`/`delete`, and multipart `post(_:formItems:)` without headers).
 These overloads forward to the required protocol methods and do not change custom
 conformance requirements.
+The required protocol methods also expose an additive
+`progress: SupportLib.Progress?` parameter; these convenience overloads forward with
+`progress: nil`.
 
 Validate forwarding behavior with:
 

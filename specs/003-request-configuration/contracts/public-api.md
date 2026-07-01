@@ -101,45 +101,51 @@ public let defaultHeaders: [String: String]     // unchanged
 // configurator: RequestConfigurator?  — REMOVED
 ```
 
-### Required HTTPClient method signatures (unchanged)
+### Required HTTPClient method signatures (updated)
 
-HTTP method signatures are **not changed** by this feature. Configuration is applied
-uniformly via the engine's stored `configuration` property. All existing call sites
-compile unchanged:
+HTTP method signatures include an additive optional
+`progress: SupportLib.Progress?` parameter. Configuration is still applied uniformly
+via the engine's stored `configuration` property. Existing call sites remain
+source-compatible by omitting the `progress` argument:
 
 ```swift
 // GET
 public func get(
     _ url: URL,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    progress: SupportLib.Progress? = nil
 ) async throws -> HTTPResponse
 
 // POST with optional body
 public func post(
     _ url: URL,
     body: RequestBody? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    progress: SupportLib.Progress? = nil
 ) async throws -> HTTPResponse
 
 // POST multipart
 public func post(
     _ url: URL,
     formItems: [FormItem],
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    progress: SupportLib.Progress? = nil
 ) async throws -> HTTPResponse
 
 // PUT
 public func put(
     _ url: URL,
     body: RequestBody? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    progress: SupportLib.Progress? = nil
 ) async throws -> HTTPResponse
 
 // DELETE
 public func delete(
     _ url: URL,
     body: RequestBody? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    progress: SupportLib.Progress? = nil
 ) async throws -> HTTPResponse
 ```
 

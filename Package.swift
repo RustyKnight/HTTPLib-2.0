@@ -5,9 +5,9 @@ import PackageDescription
 let package = Package(
     name: "HTTPClientLib",
     platforms: [
-        .macOS(.v10_15),
-        .iOS(.v13),
-        .tvOS(.v13),
+        .macOS(.v12),
+        .iOS(.v15),
+        .tvOS(.v15),
         .visionOS(.v1)
     ],
     products: [
@@ -16,13 +16,22 @@ let package = Package(
             targets: ["HTTPClientLib"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/RustyKnight/SupportLib-2.0", branch: "main")
+    ],
     targets: [
         .target(
-            name: "HTTPClientLib"
+            name: "HTTPClientLib",
+            dependencies: [
+                .product(name: "SupportLib", package: "SupportLib-2.0")
+            ]
         ),
         .testTarget(
             name: "HTTPClientLibTests",
-            dependencies: ["HTTPClientLib"]
+            dependencies: [
+                "HTTPClientLib",
+                .product(name: "SupportLib", package: "SupportLib-2.0")
+            ]
         )
     ]
 )

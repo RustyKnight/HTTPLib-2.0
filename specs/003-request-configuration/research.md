@@ -226,18 +226,20 @@ public init(
 )
 ```
 
-HTTP method signatures are unchanged from Feature 002:
+HTTP method signatures include an additive optional `progress: SupportLib.Progress?`
+parameter (defaulted by `DefaultHTTPClient`), while remaining source-compatible for
+existing call sites that omit the new argument:
 
 ```swift
-public func get(_ url: URL, headers: [String: String]? = nil) async throws -> HTTPResponse
-public func post(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse
+public func get(_ url: URL, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse
+public func post(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse
 // … etc.
 ```
 
 **Rationale**: Engine-level configuration aligns with how `URLSession` itself works:
 a session has a configuration (`URLSessionConfiguration`) applied to all requests
 it dispatches. Placing the configuration on the engine init keeps method signatures
-clean (FR-009 is satisfied: no method signature changes), makes the engine's
+clean (FR-009 remains satisfied because call sites remain compatible), makes the engine's
 transport intent explicit at construction time, and gives callers a natural
 composition point — create one engine per distinct transport profile. All existing
 HTTP method call sites compile unchanged without modification.

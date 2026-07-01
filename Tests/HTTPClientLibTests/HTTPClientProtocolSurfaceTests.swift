@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import SupportLib
 @testable import HTTPClientLib
 
 @Suite("HTTPClient Protocol Surface") struct HTTPClientProtocolSurfaceTests {
@@ -19,40 +20,41 @@ import Foundation
         let url: URL
         let body: RequestBody?
         let headers: [String: String]?
+        let progress: SupportLib.ProgressTracker?
     }
 
     private final class MockHTTPClient: HTTPClient, @unchecked Sendable {
         private let lock = NSLock()
         private(set) var lastCapturedCall: CapturedCall?
-        private(set) var lastMultipartCall: (url: URL, formItems: [FormItem], headers: [String: String]?)?
+        private(set) var lastMultipartCall: (url: URL, formItems: [FormItem], headers: [String: String]?, progress: SupportLib.ProgressTracker?)?
         private let nextResponse: HTTPResponse
 
         init(nextResponse: HTTPResponse) {
             self.nextResponse = nextResponse
         }
 
-        func get(_ url: URL, headers: [String : String]?) async throws -> HTTPResponse {
-            lock.withLock { lastCapturedCall = CapturedCall(method: .get, url: url, body: nil, headers: headers) }
+        func get(_ url: URL, headers: [String : String]?, progress: SupportLib.ProgressTracker?) async throws -> HTTPResponse {
+            lock.withLock { lastCapturedCall = CapturedCall(method: .get, url: url, body: nil, headers: headers, progress: progress) }
             return nextResponse
         }
 
-        func post(_ url: URL, body: RequestBody?, headers: [String : String]?) async throws -> HTTPResponse {
-            lock.withLock { lastCapturedCall = CapturedCall(method: .post, url: url, body: body, headers: headers) }
+        func post(_ url: URL, body: RequestBody?, headers: [String : String]?, progress: SupportLib.ProgressTracker?) async throws -> HTTPResponse {
+            lock.withLock { lastCapturedCall = CapturedCall(method: .post, url: url, body: body, headers: headers, progress: progress) }
             return nextResponse
         }
 
-        func put(_ url: URL, body: RequestBody?, headers: [String : String]?) async throws -> HTTPResponse {
-            lock.withLock { lastCapturedCall = CapturedCall(method: .put, url: url, body: body, headers: headers) }
+        func put(_ url: URL, body: RequestBody?, headers: [String : String]?, progress: SupportLib.ProgressTracker?) async throws -> HTTPResponse {
+            lock.withLock { lastCapturedCall = CapturedCall(method: .put, url: url, body: body, headers: headers, progress: progress) }
             return nextResponse
         }
 
-        func post(_ url: URL, formItems: [FormItem], headers: [String : String]?) async throws -> HTTPResponse {
-            lock.withLock { lastMultipartCall = (url: url, formItems: formItems, headers: headers) }
+        func post(_ url: URL, formItems: [FormItem], headers: [String : String]?, progress: SupportLib.ProgressTracker?) async throws -> HTTPResponse {
+            lock.withLock { lastMultipartCall = (url: url, formItems: formItems, headers: headers, progress: progress) }
             return nextResponse
         }
 
-        func delete(_ url: URL, body: RequestBody?, headers: [String : String]?) async throws -> HTTPResponse {
-            lock.withLock { lastCapturedCall = CapturedCall(method: .delete, url: url, body: body, headers: headers) }
+        func delete(_ url: URL, body: RequestBody?, headers: [String : String]?, progress: SupportLib.ProgressTracker?) async throws -> HTTPResponse {
+            lock.withLock { lastCapturedCall = CapturedCall(method: .delete, url: url, body: body, headers: headers, progress: progress) }
             return nextResponse
         }
     }
@@ -68,6 +70,7 @@ import Foundation
         #expect(call.method == .get)
         #expect(call.url == url)
         #expect(call.headers == nil)
+        #expect(call.progress == nil)
         #expect(response.statusCode == 200)
     }
 
@@ -81,6 +84,7 @@ import Foundation
 
         #expect(call.method == .post)
         #expect(call.headers == nil)
+        #expect(call.progress == nil)
         if case .text(let value)? = call.body {
             #expect(value == "hello")
         } else {
@@ -104,5 +108,6 @@ import Foundation
             Issue.record("Expected nil body to be forwarded")
         }
         #expect(call.headers?["X-Trace"] == "abc")
+        #expect(call.progress == nil)
     }
 }

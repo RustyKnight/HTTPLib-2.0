@@ -16,7 +16,10 @@ constrained-network access, and cookie handling. `DefaultHTTPClient.init` gains 
 `configuration: DefaultHTTPClient.Configuration = .default` parameter, leaving all existing
 init call sites that omit the argument source-compatible. `DefaultHTTPClient` stores the
 value as `public let configuration: Configuration` and applies it to every assembled
-`URLRequest`. HTTP method signatures are unchanged. The built-in default instance
+`URLRequest`. HTTP method signatures now include an additive optional
+`SupportLib.Progress` parameter on `GET`/`POST`/`PUT`/`DELETE`; existing call sites remain
+source-compatible because the parameter defaults to `nil` in the default implementation.
+The built-in default instance
 (`DefaultHTTPClient.Configuration.default`) reproduces `URLRequest` platform defaults exactly,
 so default behaviour is unchanged. Because the public `RequestConfigurator`
 typealias and `HTTPClient.configurator` property are removed, this is a **breaking

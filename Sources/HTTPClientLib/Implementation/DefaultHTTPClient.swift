@@ -1,4 +1,5 @@
 import Foundation
+import SupportLib
 
 /// Default implementation of the `HTTPClient` protocol.
 ///
@@ -32,7 +33,8 @@ public struct DefaultHTTPClient: HTTPClient {
         url: URL,
         method: HTTPMethod,
         headers: [String: String]?,
-        body: RequestBody? = nil
+        body: RequestBody? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
         // FR-007, research Decision 8: check cancellation before any work
         try Task.checkCancellation()
@@ -48,76 +50,89 @@ public struct DefaultHTTPClient: HTTPClient {
 
         log(request: request)
 
-        let data: Data
-        let urlResponse: URLResponse
+        let requestPhaseTracker = await progress?.createChild(value: 0)
+        let responsePhaseTracker = await progress?.createChild(value: 0)
+
         do {
-            // FR-010: routes through injected session
-            (data, urlResponse) = try await self.session.data(for: request)
+            // FR-010: routes through injected session with progress delegate
+            let delegate = HTTPProgressDelegate(
+                requestProgressTracker: requestPhaseTracker,
+                responseProgressTracker: responsePhaseTracker
+            )
+            let (data, urlResponse) = try await self.session.data(for: request, delegate: delegate)
+
+            // Mark phases as complete after data transfer is finished
+            await requestPhaseTracker?.update(value: 1)
+            await responsePhaseTracker?.update(value: 1)
+
+            guard let httpResponse = urlResponse as? HTTPURLResponse else {
+                throw HTTPClientError.networkError(URLError(.badServerResponse))
+            }
+
+            // FR-008: non-2xx status codes are returned to the caller, not thrown
+            let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
+            let httpResponseObj = DefaultHTTPResponse(
+                url: url,
+                method: method,
+                headers: responseHeaders,
+                statusCode: httpResponse.statusCode,
+                body: data.isEmpty ? nil : data
+            )
+            
+            log(response: httpResponseObj)
+            
+            return httpResponseObj
         } catch is CancellationError {
             // FR-007: CancellationError propagates directly — never wrapped in HTTPClientError
             throw CancellationError()
         } catch {
             throw HTTPClientError.networkError(error)
         }
-
-        guard let httpResponse = urlResponse as? HTTPURLResponse else {
-            throw HTTPClientError.networkError(URLError(.badServerResponse))
-        }
-
-        // FR-008: non-2xx status codes are returned to the caller, not thrown
-        let responseHeaders = httpResponse.allHeaderFields as? [String: String] ?? [:]
-        let httpResponseObj = DefaultHTTPResponse(
-            url: url,
-            method: method,
-            headers: responseHeaders,
-            statusCode: httpResponse.statusCode,
-            body: data.isEmpty ? nil : data
-        )
-        
-        log(response: httpResponseObj)
-        
-        return httpResponseObj
     }
 
     // MARK: - GET (FR-002, FR-014 — no body parameter)
 
     public func get(
         _ url: URL,
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
-        try await dispatch(url: url, method: .get, headers: headers)
+        try await dispatch(url: url, method: .get, headers: headers, progress: progress)
     }
 
     // MARK: - POST (FR-002)
 
-    /// POST with an optional body.
+    /// POST with an optional body, optional headers, and optional progress.
     public func post(
         _ url: URL,
         body: RequestBody? = nil,
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
-        try await dispatch(url: url, method: .post, headers: headers, body: body)
+        try await dispatch(url: url, method: .post, headers: headers, body: body, progress: progress)
     }
 
     // MARK: - PUT (FR-002)
 
-    /// PUT with an optional body.
+    /// PUT with an optional body, optional headers, and optional progress.
     public func put(
         _ url: URL,
         body: RequestBody? = nil,
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
-        try await dispatch(url: url, method: .put, headers: headers, body: body)
+        try await dispatch(url: url, method: .put, headers: headers, body: body, progress: progress)
     }
 
     // MARK: - POST multipart (FR-015, US5)
 
-    /// POST with multipart form-data. `formItems` must be non-empty and all items must have
+    /// POST with multipart form-data, optional headers, and optional progress. `formItems` must be non-empty and all items must have
     /// non-empty names. Throws before any network activity on validation or encoding failure.
     public func post(
         _ url: URL,
         formItems: [FormItem],
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
         // FR-007: check cancellation before any work
         try Task.checkCancellation()  // FR-007: CancellationError propagates directly
@@ -162,9 +177,21 @@ public struct DefaultHTTPClient: HTTPClient {
 
         log(request: request)
 
-        // FR-010: routes through injected session
+        let requestPhaseTracker = await progress?.createChild(value: 0)
+        let responsePhaseTracker = await progress?.createChild(value: 0)
+
+        // FR-010: routes through injected session with progress delegate
         do {
-            let (data, urlResponse) = try await self.session.data(for: request)
+            let delegate = HTTPProgressDelegate(
+                requestProgressTracker: requestPhaseTracker,
+                responseProgressTracker: responsePhaseTracker
+            )
+            let (data, urlResponse) = try await self.session.data(for: request, delegate: delegate)
+
+            // Mark phases as complete after data transfer is finished
+            await requestPhaseTracker?.update(value: 1)
+            await responsePhaseTracker?.update(value: 1)
+
             guard let httpResponse = urlResponse as? HTTPURLResponse else {
                 throw HTTPClientError.networkError(URLError(.badServerResponse))
             }
@@ -201,12 +228,13 @@ public struct DefaultHTTPClient: HTTPClient {
         logger.log(request: request.logMessage())
     }
 
-    /// DELETE with an optional body.
+    /// DELETE with an optional body, optional headers, and optional progress.
     public func delete(
         _ url: URL,
         body: RequestBody? = nil,
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        progress: SupportLib.ProgressTracker? = nil
     ) async throws -> HTTPResponse {
-        try await dispatch(url: url, method: .delete, headers: headers, body: body)
+        try await dispatch(url: url, method: .delete, headers: headers, body: body, progress: progress)
     }
 }

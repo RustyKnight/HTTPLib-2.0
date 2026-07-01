@@ -117,19 +117,20 @@ The `configurator: RequestConfigurator? = nil` parameter is removed and replaced
 by `configuration: Configuration = .default`. All init call sites that do not
 supply either parameter compile unchanged (FR-009 / A-08).
 
-#### Required HTTPClient Method Signatures (unchanged)
+#### Required HTTPClient Method Signatures (updated)
 
-HTTP method signatures are **not changed** by this feature. Configuration is
-applied uniformly via the engine's stored `configuration` property, not via
-per-request parameters. All existing call sites compile unchanged:
+HTTP method signatures now include an additive optional
+`progress: SupportLib.Progress?` parameter. Configuration remains applied uniformly
+via the engine's stored `configuration` property (not via per-request configuration
+parameters). Existing call sites remain source-compatible by passing no `progress`:
 
 | Method | Signature |
 |--------|-----------|
-| GET | `get(_ url: URL, headers: [String: String]? = nil) async throws -> HTTPResponse` |
-| POST (body) | `post(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse` |
-| POST (multipart) | `post(_ url: URL, formItems: [FormItem], headers: [String: String]? = nil) async throws -> HTTPResponse` |
-| PUT | `put(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse` |
-| DELETE | `delete(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil) async throws -> HTTPResponse` |
+| GET | `get(_ url: URL, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse` |
+| POST (body) | `post(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse` |
+| POST (multipart) | `post(_ url: URL, formItems: [FormItem], headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse` |
+| PUT | `put(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse` |
+| DELETE | `delete(_ url: URL, body: RequestBody? = nil, headers: [String: String]? = nil, progress: SupportLib.Progress? = nil) async throws -> HTTPResponse` |
 
 #### Convenience Overloads (additive protocol extension surface)
 
