@@ -37,7 +37,7 @@ This is an experiment with Github SpecKit and Github Copilot.
 # Requirements
 
 - Swift 6.0+
-- macOS 12.0+, iOS 15.0+, tvOS 15.0+, visionOS 1.0+
+- macOS 14.0+, iOS 15.0+, tvOS 15.0+, visionOS 1.0+
 
 ## Add to your package
 
